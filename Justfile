@@ -16,6 +16,10 @@ build-main: build
 build-all:
     {{bazel}} build {{all_targets}}
 
+# Build the imported ClickHouse parser core subset.
+build-parser-core:
+    {{bazel}} build //ported_clickhouse:parser_core
+
 # Build only hello_clickshack.
 build-hello:
     {{bazel}} build //examples/bootstrap:hello_clickshack

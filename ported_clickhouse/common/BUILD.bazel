@@ -1,0 +1,11 @@
+cc_library(
+    name = "error_codes",
+    srcs = ["ErrorCodes.cpp"],
+    hdrs = [
+        "Exception.h",
+        "StringUtils.h",
+        "UTF8Helpers.h",
+        "checkStackSize.h",
+    ],
+    visibility = ["//visibility:public"],
+)

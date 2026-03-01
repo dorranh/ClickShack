@@ -1,0 +1,5 @@
+cc_library(
+    name = "core_headers",
+    hdrs = ["Defines.h"],
+    visibility = ["//visibility:public"],
+)

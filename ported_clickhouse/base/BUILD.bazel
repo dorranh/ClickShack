@@ -1,0 +1,9 @@
+cc_library(
+    name = "base_headers",
+    hdrs = [
+        "defines.h",
+        "find_symbols.h",
+        "types.h",
+    ],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,27 @@
+cc_library(
+    name = "parser_core",
+    srcs = [
+        "IParser.cpp",
+        "IParserBase.cpp",
+        "Lexer.cpp",
+        "TokenIterator.cpp",
+    ],
+    hdrs = [
+        "IAST_fwd.h",
+        "IParser.h",
+        "IParserBase.h",
+        "Lexer.h",
+        "LexerStandalone.h",
+        "LiteralTokenInfo.h",
+        "TokenIterator.h",
+        "clickhouse_lexer.h",
+    ],
+    deps = [
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+        "@abseil_cpp//absl/container:flat_hash_map",
+        "@abseil_cpp//absl/container:inlined_vector",
+    ],
+    visibility = ["//visibility:public"],
+)

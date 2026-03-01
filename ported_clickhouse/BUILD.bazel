@@ -1,0 +1,5 @@
+alias(
+    name = "parser_core",
+    actual = "//ported_clickhouse/parsers:parser_core",
+    visibility = ["//visibility:public"],
+)
