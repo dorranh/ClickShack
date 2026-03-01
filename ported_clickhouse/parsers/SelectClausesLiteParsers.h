@@ -9,6 +9,7 @@ struct SelectClausesLiteResult
 {
     ASTPtr where_expression;
     ASTPtr group_by_expressions;
+    ASTPtr having_expression;
     ASTPtr order_by_list;
     ASTPtr limit;
 };

@@ -11,10 +11,13 @@ namespace DB
 class ASTSelectRichQuery : public IAST
 {
 public:
+    ASTExpressionList * with_expressions = nullptr;
+    bool distinct = false;
     ASTExpressionList * expressions = nullptr;
     IAST * from_source = nullptr;
     IAST * where_expression = nullptr;
     ASTExpressionList * group_by_expressions = nullptr;
+    IAST * having_expression = nullptr;
     ASTOrderByListLite * order_by_list = nullptr;
     ASTLimitLite * limit = nullptr;
 
@@ -26,6 +29,9 @@ public:
     ASTPtr clone() const override
     {
         auto res = make_intrusive<ASTSelectRichQuery>();
+        res->distinct = distinct;
+        if (with_expressions)
+            res->set(res->with_expressions, with_expressions->clone());
         if (expressions)
             res->set(res->expressions, expressions->clone());
         if (from_source)
@@ -34,6 +40,8 @@ public:
             res->set(res->where_expression, where_expression->clone());
         if (group_by_expressions)
             res->set(res->group_by_expressions, group_by_expressions->clone());
+        if (having_expression)
+            res->set(res->having_expression, having_expression->clone());
         if (order_by_list)
             res->set(res->order_by_list, order_by_list->clone());
         if (limit)

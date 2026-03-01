@@ -57,6 +57,16 @@ std::string_view toStringView(Keyword type)
             return "ASC";
         case Keyword::DESC:
             return "DESC";
+        case Keyword::WITH:
+            return "WITH";
+        case Keyword::DISTINCT:
+            return "DISTINCT";
+        case Keyword::HAVING:
+            return "HAVING";
+        case Keyword::UNION:
+            return "UNION";
+        case Keyword::ALL:
+            return "ALL";
     }
     return "";
 }

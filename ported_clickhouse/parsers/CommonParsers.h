@@ -32,6 +32,11 @@ enum class Keyword : UInt8
     JOIN,
     ASC,
     DESC,
+    WITH,
+    DISTINCT,
+    HAVING,
+    UNION,
+    ALL,
 };
 
 std::string_view toStringView(Keyword type);

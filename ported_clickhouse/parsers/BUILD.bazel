@@ -174,11 +174,13 @@ cc_library(
     name = "parser_select_rich_stack",
     srcs = [
         "ASTSelectRichQuery.cpp",
+        "ASTSelectSetLite.cpp",
         "ParserSelectRichQuery.cpp",
     ],
     hdrs = [
         "ASTSelectRichQuery.h",
         "ASTSelectRichQuery_fwd.h",
+        "ASTSelectSetLite.h",
         "ParserSelectRichQuery.h",
     ],
     deps = [

@@ -74,6 +74,7 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
     ParserKeyword s_where(Keyword::WHERE);
     ParserKeyword s_group(Keyword::GROUP);
     ParserKeyword s_by(Keyword::BY);
+    ParserKeyword s_having(Keyword::HAVING);
     ParserKeyword s_order(Keyword::ORDER);
     ParserKeyword s_limit(Keyword::LIMIT);
     ParserKeyword s_offset(Keyword::OFFSET);
@@ -91,6 +92,13 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
             return false;
         ParserExpressionListOpsLite expr_list_p;
         if (!expr_list_p.parse(pos, result.group_by_expressions, expected))
+            return false;
+    }
+
+    if (s_having.ignore(pos, expected))
+    {
+        ParserExpressionOpsLite expr_p;
+        if (!expr_p.parse(pos, result.having_expression, expected))
             return false;
     }
 

@@ -44,7 +44,9 @@ bool parseAlias(IParser::Pos & pos, ASTPtr & alias, Expected & expected)
 
     if (isKeyword(pos, "WHERE") || isKeyword(pos, "GROUP") || isKeyword(pos, "ORDER") || isKeyword(pos, "LIMIT")
         || isKeyword(pos, "INNER") || isKeyword(pos, "LEFT") || isKeyword(pos, "RIGHT") || isKeyword(pos, "FULL")
-        || isKeyword(pos, "CROSS") || isKeyword(pos, "JOIN") || isKeyword(pos, "ON") || isKeyword(pos, "OFFSET"))
+        || isKeyword(pos, "CROSS") || isKeyword(pos, "JOIN") || isKeyword(pos, "ON") || isKeyword(pos, "OFFSET")
+        || isKeyword(pos, "UNION") || isKeyword(pos, "HAVING") || isKeyword(pos, "WITH") || isKeyword(pos, "SELECT")
+        || isKeyword(pos, "DISTINCT") || isKeyword(pos, "ALL"))
         return true;
 
     ASTPtr id;

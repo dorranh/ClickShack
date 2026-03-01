@@ -4,6 +4,7 @@
 
 #include "ported_clickhouse/parsers/ASTJoinLite.h"
 #include "ported_clickhouse/parsers/ASTSelectRichQuery.h"
+#include "ported_clickhouse/parsers/ASTSelectSetLite.h"
 #include "ported_clickhouse/parsers/ASTTableExprLite.h"
 #include "ported_clickhouse/parsers/IParser.h"
 #include "ported_clickhouse/parsers/ParserSelectRichQuery.h"
@@ -101,7 +102,20 @@ int main(int argc, char ** argv)
         return 2;
     }
 
-    auto * select = node ? node->as<DB::ASTSelectRichQuery>() : nullptr;
+    int union_count = 0;
+    const DB::ASTSelectRichQuery * select = nullptr;
+
+    if (auto * set = node ? node->as<DB::ASTSelectSetLite>() : nullptr)
+    {
+        union_count = static_cast<int>(set->union_modes.size());
+        if (!set->children.empty())
+            select = set->children.front() ? set->children.front()->as<DB::ASTSelectRichQuery>() : nullptr;
+    }
+    else
+    {
+        select = node ? node->as<DB::ASTSelectRichQuery>() : nullptr;
+    }
+
     if (!select || !select->expressions || !select->from_source)
     {
         std::cerr << "missing select rich ast" << std::endl;
@@ -113,11 +127,15 @@ int main(int argc, char ** argv)
     summarizeSource(select->from_source, join_types, source_kinds);
 
     std::cout << "projections=" << select->expressions->children.size()
+              << " unions=" << union_count
               << " joins=" << join_types.size()
               << " join_types=" << joinCsv(join_types)
               << " source_kinds=" << joinCsv(source_kinds)
+              << " with=" << (select->with_expressions ? 1 : 0)
+              << " distinct=" << (select->distinct ? 1 : 0)
               << " where=" << (select->where_expression ? 1 : 0)
               << " group_by=" << (select->group_by_expressions ? 1 : 0)
+              << " having=" << (select->having_expression ? 1 : 0)
               << " order_by=" << (select->order_by_list ? 1 : 0)
               << " limit=" << (select->limit ? 1 : 0)
               << " offset=" << (select->limit && select->limit->offset_present ? 1 : 0);
