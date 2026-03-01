@@ -3,3 +3,18 @@ alias(
     actual = "//ported_clickhouse/parsers:parser_core",
     visibility = ["//visibility:public"],
 )
+
+alias(
+    name = "parser_use_stack",
+    actual = "//ported_clickhouse/parsers:parser_use_stack",
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "parser_lib",
+    deps = [
+        ":parser_core",
+        ":parser_use_stack",
+    ],
+    visibility = ["//visibility:public"],
+)

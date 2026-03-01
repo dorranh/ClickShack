@@ -26,3 +26,12 @@ cc_binary(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_binary(
+    name = "use_parser_smoke",
+    srcs = ["use_parser_smoke.cc"],
+    deps = [
+        "//ported_clickhouse:parser_use_stack",
+    ],
+    visibility = ["//visibility:public"],
+)

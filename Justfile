@@ -20,6 +20,11 @@ build-all:
 build-parser-core:
     {{bazel}} build //ported_clickhouse:parser_core
 
+# Run all current ported_clickhouse smoke tests.
+run-ported-smokes:
+    {{bazel}} build //ported_clickhouse:parser_lib //examples/bootstrap:use_parser_smoke
+    bazel-bin/examples/bootstrap/use_parser_smoke "USE mydb"
+
 # Build only hello_clickshack.
 build-hello:
     {{bazel}} build //examples/bootstrap:hello_clickshack

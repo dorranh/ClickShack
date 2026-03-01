@@ -25,3 +25,30 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "parser_use_stack",
+    srcs = [
+        "ASTIdentifier.cpp",
+        "CommonParsers.cpp",
+        "ExpressionElementParsers.cpp",
+        "IAST.cpp",
+        "ParserUseQuery.cpp",
+    ],
+    hdrs = [
+        "ASTIdentifier.h",
+        "ASTIdentifier_fwd.h",
+        "ASTUseQuery.h",
+        "CommonParsers.h",
+        "ExpressionElementParsers.h",
+        "IAST.h",
+        "ParserUseQuery.h",
+    ],
+    deps = [
+        ":parser_core",
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+    ],
+    visibility = ["//visibility:public"],
+)
