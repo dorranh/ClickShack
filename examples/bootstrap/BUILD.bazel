@@ -1,0 +1,28 @@
+cc_library(
+    name = "core",
+    hdrs = ["core.h"],
+    srcs = ["core.cc"],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "hello_clickshack",
+    srcs = ["main.cc"],
+    deps = [":core"],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "deps_probe",
+    srcs = ["deps_probe.cc"],
+    deps = [
+        "@abseil_cpp//absl/strings",
+        "@boost_config//:boost.config",
+        "@double_conversion//:double-conversion",
+        "@fmt//:fmt",
+        "@magic_enum//:magic_enum",
+        "@openssl//:crypto",
+        "@re2//:re2",
+    ],
+    visibility = ["//visibility:public"],
+)
