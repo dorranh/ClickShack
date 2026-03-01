@@ -100,3 +100,93 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "expression_ops_lite_stack",
+    srcs = [
+        "ASTExpressionOpsLite.cpp",
+        "ExpressionOpsLiteParsers.cpp",
+    ],
+    hdrs = [
+        "ASTExpressionOpsLite.h",
+        "ExpressionOpsLiteParsers.h",
+    ],
+    deps = [
+        ":parser_select_lite_stack",
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "parser_table_sources_stack",
+    srcs = [
+        "ASTJoinLite.cpp",
+        "ASTTableAliasLite.cpp",
+        "ASTTableExprLite.cpp",
+        "ASTTableFunctionLite.cpp",
+        "TableSourcesLiteParsers.cpp",
+    ],
+    hdrs = [
+        "ASTSelectRichQuery_fwd.h",
+        "ASTJoinLite.h",
+        "ASTTableAliasLite.h",
+        "ASTTableExprLite.h",
+        "ASTTableFunctionLite.h",
+        "TableSourcesLiteParsers.h",
+    ],
+    deps = [
+        ":expression_ops_lite_stack",
+        ":parser_select_from_lite_stack",
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "parser_select_clauses_stack",
+    srcs = [
+        "ASTLimitLite.cpp",
+        "ASTOrderByElementLite.cpp",
+        "ASTOrderByListLite.cpp",
+        "SelectClausesLiteParsers.cpp",
+    ],
+    hdrs = [
+        "ASTLimitLite.h",
+        "ASTOrderByElementLite.h",
+        "ASTOrderByListLite.h",
+        "SelectClausesLiteParsers.h",
+    ],
+    deps = [
+        ":expression_ops_lite_stack",
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "parser_select_rich_stack",
+    srcs = [
+        "ASTSelectRichQuery.cpp",
+        "ParserSelectRichQuery.cpp",
+    ],
+    hdrs = [
+        "ASTSelectRichQuery.h",
+        "ASTSelectRichQuery_fwd.h",
+        "ParserSelectRichQuery.h",
+    ],
+    deps = [
+        ":parser_select_clauses_stack",
+        ":parser_table_sources_stack",
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+    ],
+    visibility = ["//visibility:public"],
+)

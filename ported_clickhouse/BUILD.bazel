@@ -22,6 +22,30 @@ alias(
     visibility = ["//visibility:public"],
 )
 
+alias(
+    name = "expression_ops_lite_stack",
+    actual = "//ported_clickhouse/parsers:expression_ops_lite_stack",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "parser_table_sources_stack",
+    actual = "//ported_clickhouse/parsers:parser_table_sources_stack",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "parser_select_clauses_stack",
+    actual = "//ported_clickhouse/parsers:parser_select_clauses_stack",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "parser_select_rich_stack",
+    actual = "//ported_clickhouse/parsers:parser_select_rich_stack",
+    visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "parser_lib",
     deps = [
@@ -29,6 +53,10 @@ cc_library(
         ":parser_use_stack",
         ":parser_select_lite_stack",
         ":parser_select_from_lite_stack",
+        ":expression_ops_lite_stack",
+        ":parser_table_sources_stack",
+        ":parser_select_clauses_stack",
+        ":parser_select_rich_stack",
     ],
     visibility = ["//visibility:public"],
 )

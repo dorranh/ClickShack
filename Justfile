@@ -22,10 +22,11 @@ build-parser-core:
 
 # Run all current ported_clickhouse smoke tests.
 run-ported-smokes:
-    {{bazel}} build //ported_clickhouse:parser_lib //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke //examples/bootstrap:select_from_lite_smoke
+    {{bazel}} build //ported_clickhouse:parser_lib //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke //examples/bootstrap:select_from_lite_smoke //examples/bootstrap:select_rich_smoke
     bazel-bin/examples/bootstrap/use_parser_smoke "USE mydb"
     bazel-bin/examples/bootstrap/select_lite_smoke "SELECT a, 1, f(x)"
     bazel-bin/examples/bootstrap/select_from_lite_smoke "SELECT a, 1, f(x) FROM mydb.mytable"
+    bazel-bin/examples/bootstrap/select_rich_smoke "SELECT a FROM t"
 
 # Build only hello_clickshack.
 build-hello:

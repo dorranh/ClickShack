@@ -19,6 +19,44 @@ std::string_view toStringView(Keyword type)
             return "SELECT";
         case Keyword::FROM:
             return "FROM";
+        case Keyword::WHERE:
+            return "WHERE";
+        case Keyword::GROUP:
+            return "GROUP";
+        case Keyword::BY:
+            return "BY";
+        case Keyword::ORDER:
+            return "ORDER";
+        case Keyword::LIMIT:
+            return "LIMIT";
+        case Keyword::OFFSET:
+            return "OFFSET";
+        case Keyword::AS:
+            return "AS";
+        case Keyword::ON:
+            return "ON";
+        case Keyword::AND:
+            return "AND";
+        case Keyword::OR:
+            return "OR";
+        case Keyword::NOT:
+            return "NOT";
+        case Keyword::INNER:
+            return "INNER";
+        case Keyword::LEFT:
+            return "LEFT";
+        case Keyword::RIGHT:
+            return "RIGHT";
+        case Keyword::FULL:
+            return "FULL";
+        case Keyword::CROSS:
+            return "CROSS";
+        case Keyword::JOIN:
+            return "JOIN";
+        case Keyword::ASC:
+            return "ASC";
+        case Keyword::DESC:
+            return "DESC";
     }
     return "";
 }
