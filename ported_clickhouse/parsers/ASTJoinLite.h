@@ -22,6 +22,7 @@ public:
     IAST * left = nullptr;
     IAST * right = nullptr;
     IAST * on_expression = nullptr;
+    IAST * using_columns = nullptr;
 
     String getID(char delim) const override
     {
@@ -47,6 +48,8 @@ public:
             res->set(res->right, right->clone());
         if (on_expression)
             res->set(res->on_expression, on_expression->clone());
+        if (using_columns)
+            res->set(res->using_columns, using_columns->clone());
         return res;
     }
 };

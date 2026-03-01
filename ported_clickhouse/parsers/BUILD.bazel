@@ -150,15 +150,21 @@ cc_library(
 cc_library(
     name = "parser_select_clauses_stack",
     srcs = [
+        "ASTLimitByLite.cpp",
         "ASTLimitLite.cpp",
         "ASTOrderByElementLite.cpp",
         "ASTOrderByListLite.cpp",
+        "ASTWindowDefinitionLite.cpp",
+        "ASTWindowListLite.cpp",
         "SelectClausesLiteParsers.cpp",
     ],
     hdrs = [
+        "ASTLimitByLite.h",
         "ASTLimitLite.h",
         "ASTOrderByElementLite.h",
         "ASTOrderByListLite.h",
+        "ASTWindowDefinitionLite.h",
+        "ASTWindowListLite.h",
         "SelectClausesLiteParsers.h",
     ],
     deps = [

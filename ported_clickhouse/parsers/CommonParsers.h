@@ -37,6 +37,9 @@ enum class Keyword : UInt8
     HAVING,
     UNION,
     ALL,
+    USING,
+    QUALIFY,
+    WINDOW,
 };
 
 std::string_view toStringView(Keyword type);

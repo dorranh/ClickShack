@@ -85,13 +85,13 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     if (!projection_p.parse(pos, projections, expected))
         return false;
 
-    if (!s_from.ignore(pos, expected))
-        return false;
-
-    ParserTableSourceLite source_p;
     ASTPtr source;
-    if (!source_p.parse(pos, source, expected))
-        return false;
+    if (s_from.ignore(pos, expected))
+    {
+        ParserTableSourceLite source_p;
+        if (!source_p.parse(pos, source, expected))
+            return false;
+    }
 
     SelectClausesLiteResult clauses;
     if (!parseSelectClausesLite(pos, clauses, expected))
@@ -102,17 +102,24 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     if (with_expressions)
         query->set(query->with_expressions, with_expressions);
     query->set(query->expressions, projections);
-    query->set(query->from_source, source);
+    if (source)
+        query->set(query->from_source, source);
     if (clauses.where_expression)
         query->set(query->where_expression, clauses.where_expression);
     if (clauses.group_by_expressions)
         query->set(query->group_by_expressions, clauses.group_by_expressions);
     if (clauses.having_expression)
         query->set(query->having_expression, clauses.having_expression);
+    if (clauses.window_list)
+        query->set(query->window_list, clauses.window_list);
+    if (clauses.qualify_expression)
+        query->set(query->qualify_expression, clauses.qualify_expression);
     if (clauses.order_by_list)
         query->set(query->order_by_list, clauses.order_by_list);
     if (clauses.limit)
         query->set(query->limit, clauses.limit);
+    if (clauses.limit_by)
+        query->set(query->limit_by, clauses.limit_by);
 
     node = query;
     return true;

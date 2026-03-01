@@ -67,6 +67,12 @@ std::string_view toStringView(Keyword type)
             return "UNION";
         case Keyword::ALL:
             return "ALL";
+        case Keyword::USING:
+            return "USING";
+        case Keyword::QUALIFY:
+            return "QUALIFY";
+        case Keyword::WINDOW:
+            return "WINDOW";
     }
     return "";
 }

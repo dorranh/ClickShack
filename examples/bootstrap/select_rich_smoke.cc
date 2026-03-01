@@ -116,7 +116,7 @@ int main(int argc, char ** argv)
         select = node ? node->as<DB::ASTSelectRichQuery>() : nullptr;
     }
 
-    if (!select || !select->expressions || !select->from_source)
+    if (!select || !select->expressions)
     {
         std::cerr << "missing select rich ast" << std::endl;
         return 3;
@@ -136,8 +136,11 @@ int main(int argc, char ** argv)
               << " where=" << (select->where_expression ? 1 : 0)
               << " group_by=" << (select->group_by_expressions ? 1 : 0)
               << " having=" << (select->having_expression ? 1 : 0)
+              << " windows=" << (select->window_list ? select->window_list->children.size() : 0)
+              << " qualify=" << (select->qualify_expression ? 1 : 0)
               << " order_by=" << (select->order_by_list ? 1 : 0)
               << " limit=" << (select->limit ? 1 : 0)
+              << " limit_by=" << (select->limit_by ? 1 : 0)
               << " offset=" << (select->limit && select->limit->offset_present ? 1 : 0);
 
     if (select->limit)
@@ -146,6 +149,8 @@ int main(int argc, char ** argv)
         if (select->limit->offset_present)
             std::cout << " offset_value=" << select->limit->offset;
     }
+    if (select->limit_by)
+        std::cout << " limit_by_value=" << select->limit_by->limit;
 
     std::cout << std::endl;
     return 0;

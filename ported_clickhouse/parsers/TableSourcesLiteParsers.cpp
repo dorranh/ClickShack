@@ -45,6 +45,8 @@ bool parseAlias(IParser::Pos & pos, ASTPtr & alias, Expected & expected)
     if (isKeyword(pos, "WHERE") || isKeyword(pos, "GROUP") || isKeyword(pos, "ORDER") || isKeyword(pos, "LIMIT")
         || isKeyword(pos, "INNER") || isKeyword(pos, "LEFT") || isKeyword(pos, "RIGHT") || isKeyword(pos, "FULL")
         || isKeyword(pos, "CROSS") || isKeyword(pos, "JOIN") || isKeyword(pos, "ON") || isKeyword(pos, "OFFSET")
+        || isKeyword(pos, "USING") || isKeyword(pos, "QUALIFY")
+        || isKeyword(pos, "WINDOW")
         || isKeyword(pos, "UNION") || isKeyword(pos, "HAVING") || isKeyword(pos, "WITH") || isKeyword(pos, "SELECT")
         || isKeyword(pos, "DISTINCT") || isKeyword(pos, "ALL"))
         return true;
@@ -256,6 +258,54 @@ bool parseJoinOperator(IParser::Pos & pos, ASTJoinLite::JoinType & join_type)
     return false;
 }
 
+bool parseUsingColumns(IParser::Pos & pos, ASTPtr & node, Expected & expected)
+{
+    ParserToken open(TokenType::OpeningRoundBracket);
+    ParserToken close(TokenType::ClosingRoundBracket);
+    ParserToken comma(TokenType::Comma);
+    ParserIdentifier identifier_p(/*allow_query_parameter*/ true);
+    ParserToken dot_p(TokenType::Dot);
+
+    if (!open.ignore(pos, expected))
+        return false;
+
+    auto list = make_intrusive<ASTExpressionList>();
+
+    while (true)
+    {
+        ASTPtr first;
+        if (!identifier_p.parse(pos, first, expected))
+            return false;
+        auto * first_id = first ? first->as<ASTIdentifier>() : nullptr;
+        if (!first_id)
+            return false;
+
+        String name = first_id->name();
+        while (dot_p.ignore(pos, expected))
+        {
+            ASTPtr part;
+            if (!identifier_p.parse(pos, part, expected))
+                return false;
+            auto * id = part ? part->as<ASTIdentifier>() : nullptr;
+            if (!id)
+                return false;
+            name += ".";
+            name += id->name();
+        }
+
+        list->children.push_back(make_intrusive<ASTIdentifier>(name));
+
+        if (!comma.ignore(pos, expected))
+            break;
+    }
+
+    if (!close.ignore(pos, expected))
+        return false;
+
+    node = list;
+    return true;
+}
+
 }
 
 bool ParserTableSourceLite::parseImpl(Pos & pos, ASTPtr & node, Expected & expected)
@@ -276,19 +326,31 @@ bool ParserTableSourceLite::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
             return false;
 
         ASTPtr on_expr;
+        ASTPtr using_columns;
         if (join_type == ASTJoinLite::JoinType::Cross)
         {
-            if (isKeyword(join_pos, "ON"))
+            if (isKeyword(join_pos, "ON") || isKeyword(join_pos, "USING"))
                 return false;
         }
         else
         {
-            if (!isKeyword(join_pos, "ON"))
+            if (isKeyword(join_pos, "ON"))
+            {
+                ++join_pos;
+                ParserExpressionOpsLite expr_p;
+                if (!expr_p.parse(join_pos, on_expr, expected))
+                    return false;
+            }
+            else if (isKeyword(join_pos, "USING"))
+            {
+                ++join_pos;
+                if (!parseUsingColumns(join_pos, using_columns, expected))
+                    return false;
+            }
+            else
+            {
                 return false;
-            ++join_pos;
-            ParserExpressionOpsLite expr_p;
-            if (!expr_p.parse(join_pos, on_expr, expected))
-                return false;
+            }
         }
 
         auto join = make_intrusive<ASTJoinLite>();
@@ -297,6 +359,8 @@ bool ParserTableSourceLite::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
         join->set(join->right, right);
         if (on_expr)
             join->set(join->on_expression, on_expr);
+        if (using_columns)
+            join->set(join->using_columns, using_columns);
 
         left = join;
         pos = join_pos;
