@@ -10,6 +10,9 @@ struct SelectClausesLiteResult
     ASTPtr prewhere_expression;
     ASTPtr where_expression;
     ASTPtr group_by_expressions;
+    bool group_by_with_rollup = false;
+    bool group_by_with_cube = false;
+    bool group_by_with_totals = false;
     ASTPtr having_expression;
     ASTPtr window_list;
     ASTPtr qualify_expression;

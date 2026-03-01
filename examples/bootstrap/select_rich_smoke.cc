@@ -44,7 +44,11 @@ std::string joinTypeToString(DB::ASTJoinLite::JoinType type)
     return "UNKNOWN";
 }
 
-void summarizeSource(const DB::IAST * node, std::vector<std::string> & join_types, std::vector<std::string> & source_kinds)
+void summarizeSource(
+    const DB::IAST * node,
+    std::vector<std::string> & join_types,
+    std::vector<std::string> & join_modes,
+    std::vector<std::string> & source_kinds)
 {
     if (!node)
         return;
@@ -52,8 +56,12 @@ void summarizeSource(const DB::IAST * node, std::vector<std::string> & join_type
     if (const auto * join = node->as<DB::ASTJoinLite>())
     {
         join_types.push_back(joinTypeToString(join->join_type));
-        summarizeSource(join->left, join_types, source_kinds);
-        summarizeSource(join->right, join_types, source_kinds);
+        std::string mode = join->strictness.empty() ? "none" : join->strictness;
+        if (join->is_global)
+            mode = "GLOBAL-" + mode;
+        join_modes.push_back(mode);
+        summarizeSource(join->left, join_types, join_modes, source_kinds);
+        summarizeSource(join->right, join_types, join_modes, source_kinds);
         return;
     }
 
@@ -103,17 +111,37 @@ int main(int argc, char ** argv)
     }
 
     int union_count = 0;
+    std::vector<std::string> set_ops;
+    size_t settings_count = 0;
+    bool has_format = false;
     const DB::ASTSelectRichQuery * select = nullptr;
 
     if (auto * set = node ? node->as<DB::ASTSelectSetLite>() : nullptr)
     {
         union_count = static_cast<int>(set->union_modes.size());
+        settings_count = set->settings ? set->settings->children.size() : 0;
+        has_format = set->has_format;
+        if (!set->set_ops.empty())
+        {
+            for (const auto & op : set->set_ops)
+                set_ops.push_back(op);
+        }
+        else
+        {
+            for (size_t i = 0; i < set->union_modes.size(); ++i)
+                set_ops.push_back("UNION");
+        }
         if (!set->children.empty())
             select = set->children.front() ? set->children.front()->as<DB::ASTSelectRichQuery>() : nullptr;
     }
     else
     {
         select = node ? node->as<DB::ASTSelectRichQuery>() : nullptr;
+        if (select)
+        {
+            settings_count = select->settings ? select->settings->children.size() : 0;
+            has_format = select->has_format;
+        }
     }
 
     if (!select || !select->expressions)
@@ -123,13 +151,18 @@ int main(int argc, char ** argv)
     }
 
     std::vector<std::string> join_types;
+    std::vector<std::string> join_modes;
     std::vector<std::string> source_kinds;
-    summarizeSource(select->from_source, join_types, source_kinds);
+    summarizeSource(select->from_source, join_types, join_modes, source_kinds);
 
     std::cout << "projections=" << select->expressions->children.size()
               << " unions=" << union_count
+              << " set_ops=" << joinCsv(set_ops)
+              << " settings=" << settings_count
+              << " format=" << (has_format ? 1 : 0)
               << " joins=" << join_types.size()
               << " join_types=" << joinCsv(join_types)
+              << " join_modes=" << joinCsv(join_modes)
               << " source_kinds=" << joinCsv(source_kinds)
               << " with=" << (select->with_expressions ? 1 : 0)
               << " distinct=" << (select->distinct ? 1 : 0)
@@ -141,12 +174,18 @@ int main(int argc, char ** argv)
               << " prewhere=" << (select->prewhere_expression ? 1 : 0)
               << " where=" << (select->where_expression ? 1 : 0)
               << " group_by=" << (select->group_by_expressions ? 1 : 0)
+              << " group_rollup=" << (select->group_by_with_rollup ? 1 : 0)
+              << " group_cube=" << (select->group_by_with_cube ? 1 : 0)
+              << " group_totals=" << (select->group_by_with_totals ? 1 : 0)
               << " having=" << (select->having_expression ? 1 : 0)
               << " windows=" << (select->window_list ? select->window_list->children.size() : 0)
               << " qualify=" << (select->qualify_expression ? 1 : 0)
               << " order_by=" << (select->order_by_list ? 1 : 0)
               << " limit=" << (select->limit ? 1 : 0)
               << " limit_by=" << (select->limit_by ? 1 : 0)
+              << " limit_by_offset=" << (select->limit_by && select->limit_by->offset_present ? 1 : 0)
+              << " limit_ties=" << (select->limit && select->limit->with_ties ? 1 : 0)
+              << " limit_by_all=" << (select->limit_by && select->limit_by->by_all ? 1 : 0)
               << " offset=" << (select->limit && select->limit->offset_present ? 1 : 0);
 
     if (select->limit)
@@ -156,7 +195,11 @@ int main(int argc, char ** argv)
             std::cout << " offset_value=" << select->limit->offset;
     }
     if (select->limit_by)
+    {
         std::cout << " limit_by_value=" << select->limit_by->limit;
+        if (select->limit_by->offset_present)
+            std::cout << " limit_by_offset_value=" << select->limit_by->offset;
+    }
 
     std::cout << std::endl;
     return 0;

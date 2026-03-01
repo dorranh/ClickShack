@@ -89,6 +89,46 @@ std::string_view toStringView(Keyword type)
             return "LAST";
         case Keyword::COLLATE:
             return "COLLATE";
+        case Keyword::GLOBAL:
+            return "GLOBAL";
+        case Keyword::OUTER:
+            return "OUTER";
+        case Keyword::ANY:
+            return "ANY";
+        case Keyword::SEMI:
+            return "SEMI";
+        case Keyword::ANTI:
+            return "ANTI";
+        case Keyword::ASOF:
+            return "ASOF";
+        case Keyword::TIES:
+            return "TIES";
+        case Keyword::INTERSECT:
+            return "INTERSECT";
+        case Keyword::EXCEPT:
+            return "EXCEPT";
+        case Keyword::RECURSIVE:
+            return "RECURSIVE";
+        case Keyword::FETCH:
+            return "FETCH";
+        case Keyword::NEXT:
+            return "NEXT";
+        case Keyword::ROW:
+            return "ROW";
+        case Keyword::ROWS:
+            return "ROWS";
+        case Keyword::ONLY:
+            return "ONLY";
+        case Keyword::SETTINGS:
+            return "SETTINGS";
+        case Keyword::FORMAT:
+            return "FORMAT";
+        case Keyword::ROLLUP:
+            return "ROLLUP";
+        case Keyword::CUBE:
+            return "CUBE";
+        case Keyword::TOTALS:
+            return "TOTALS";
     }
     return "";
 }

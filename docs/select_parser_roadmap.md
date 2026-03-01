@@ -17,12 +17,16 @@ Implemented and green:
 
 Supported in `select_rich` bridge:
 - `SELECT ... FROM ...`
-- joins: `INNER/LEFT/RIGHT/FULL/CROSS`
+- joins: `INNER/LEFT/RIGHT/FULL/CROSS`, plus parser-only `GLOBAL`, strictness (`ANY/ALL/SEMI/ANTI/ASOF`), and `OUTER` forms
 - source forms: table ref, table function, subquery source (recursive)
 - `FROM` tail support: `FINAL`, `SAMPLE <expr> [OFFSET <expr>]`, `[LEFT] ARRAY JOIN <expr_list>`
-- optional clauses: `WHERE`, `GROUP BY`, `HAVING`, `WINDOW`, `QUALIFY`, `ORDER BY`, `LIMIT [OFFSET]`, `LIMIT <n> BY ...`
-- set/surface forms: `WITH`, `DISTINCT`, `UNION [ALL|DISTINCT]`
-- expression ops-lite: unary/arithmetic/comparison/`AND`/`OR`/parentheses, `IN`, `BETWEEN`, `LIKE/ILIKE`, `IS [NOT] NULL`, casts (`CAST`, `::`), `CASE`, `*`/`table.*`, array literals, tuple literals
+- optional clauses: `WHERE`, `GROUP BY`, `HAVING`, `WINDOW`, `QUALIFY`, `ORDER BY`, `LIMIT [OFFSET]`, `LIMIT <n> BY ...`, `OFFSET ... FETCH ...`
+- group modifiers: `GROUP BY ... WITH ROLLUP|CUBE|TOTALS`
+- optional limit variants: `LIMIT offset,count`, `LIMIT ... WITH TIES`, `LIMIT ... BY ALL`
+- limit-by variants: `LIMIT <n> BY ...` and `LIMIT offset,count BY ...`
+- set/surface forms: `WITH [RECURSIVE]`, `SELECT ALL|DISTINCT`, `UNION|INTERSECT|EXCEPT [ALL|DISTINCT]`, trailing `SETTINGS` and `FORMAT`
+- `WITH` supports parser-only CTE-style items: `name AS (SELECT ...)` and `(SELECT ...) AS name`
+- expression ops-lite: unary/arithmetic/comparison/`AND`/`OR`/parentheses, `IN` (list or subquery RHS), `BETWEEN`, `LIKE/ILIKE`, `IS [NOT] NULL`, casts (`CAST`, `::`), `CASE`, `EXISTS`, subquery atoms (`(SELECT ...)`), `*`/`table.*`, array literals, tuple literals
 - `ORDER BY` parser-only modifiers: `NULLS FIRST/LAST`, `COLLATE <name>`
 
 ## Operating Rules For Future Work

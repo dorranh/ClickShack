@@ -25,12 +25,18 @@ public:
     IAST * prewhere_expression = nullptr;
     IAST * where_expression = nullptr;
     ASTExpressionList * group_by_expressions = nullptr;
+    bool group_by_with_rollup = false;
+    bool group_by_with_cube = false;
+    bool group_by_with_totals = false;
     IAST * having_expression = nullptr;
     ASTWindowListLite * window_list = nullptr;
     IAST * qualify_expression = nullptr;
     ASTOrderByListLite * order_by_list = nullptr;
     ASTLimitLite * limit = nullptr;
     ASTLimitByLite * limit_by = nullptr;
+    ASTExpressionList * settings = nullptr;
+    bool has_format = false;
+    String format_name;
 
     String getID(char delim) const override
     {
@@ -61,6 +67,9 @@ public:
             res->set(res->where_expression, where_expression->clone());
         if (group_by_expressions)
             res->set(res->group_by_expressions, group_by_expressions->clone());
+        res->group_by_with_rollup = group_by_with_rollup;
+        res->group_by_with_cube = group_by_with_cube;
+        res->group_by_with_totals = group_by_with_totals;
         if (having_expression)
             res->set(res->having_expression, having_expression->clone());
         if (window_list)
@@ -73,6 +82,10 @@ public:
             res->set(res->limit, limit->clone());
         if (limit_by)
             res->set(res->limit_by, limit_by->clone());
+        if (settings)
+            res->set(res->settings, settings->clone());
+        res->has_format = has_format;
+        res->format_name = format_name;
         return res;
     }
 };

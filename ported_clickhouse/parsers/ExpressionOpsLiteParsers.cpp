@@ -13,6 +13,8 @@
 namespace DB
 {
 
+bool parseNestedSelectRichQuery(IParser::Pos & pos, ASTPtr & node, Expected & expected);
+
 namespace
 {
 bool isKeyword(TokenIterator pos, const char * keyword)
@@ -34,7 +36,11 @@ bool isReservedExpressionBoundary(TokenIterator pos)
         || isKeyword(pos, "WITH") || isKeyword(pos, "DISTINCT") || isKeyword(pos, "WHEN") || isKeyword(pos, "THEN")
         || isKeyword(pos, "ELSE") || isKeyword(pos, "END") || isKeyword(pos, "WINDOW") || isKeyword(pos, "QUALIFY")
         || isKeyword(pos, "USING") || isKeyword(pos, "PREWHERE") || isKeyword(pos, "ARRAY")
-        || isKeyword(pos, "SAMPLE") || isKeyword(pos, "FINAL");
+        || isKeyword(pos, "SAMPLE") || isKeyword(pos, "FINAL") || isKeyword(pos, "FETCH")
+        || isKeyword(pos, "ROW") || isKeyword(pos, "ROWS") || isKeyword(pos, "ONLY")
+        || isKeyword(pos, "INTERSECT") || isKeyword(pos, "EXCEPT")
+        || isKeyword(pos, "SETTINGS") || isKeyword(pos, "FORMAT")
+        || isKeyword(pos, "ROLLUP") || isKeyword(pos, "CUBE") || isKeyword(pos, "TOTALS");
 }
 
 ASTPtr makeUnary(const String & op, const ASTPtr & rhs)
@@ -141,6 +147,27 @@ bool parseExpressionListInParens(IParser::Pos & pos, ASTPtr & node, Expected & e
     return true;
 }
 
+bool parseSubqueryInParens(IParser::Pos & pos, ASTPtr & node, Expected & expected)
+{
+    ParserToken open(TokenType::OpeningRoundBracket);
+    ParserToken close(TokenType::ClosingRoundBracket);
+    if (!open.ignore(pos, expected))
+        return false;
+    if (!(isKeyword(pos, "SELECT") || isKeyword(pos, "WITH")))
+        return false;
+
+    ASTPtr subquery;
+    if (!parseNestedSelectRichQuery(pos, subquery, expected))
+        return false;
+    if (!close.ignore(pos, expected))
+        return false;
+
+    ASTs args;
+    args.push_back(subquery);
+    node = makeFunctionNode("subquery", args);
+    return true;
+}
+
 bool parsePrimary(IParser::Pos & pos, ASTPtr & node, Expected & expected)
 {
     ParserToken open(TokenType::OpeningRoundBracket);
@@ -192,8 +219,33 @@ bool parsePrimary(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         return true;
     }
 
+    if (isKeyword(pos, "EXISTS"))
+    {
+        ++pos;
+        ASTPtr subquery_expr;
+        if (!parseSubqueryInParens(pos, subquery_expr, expected))
+            return false;
+        ASTs args;
+        args.push_back(subquery_expr);
+        node = makeFunctionNode("exists", args);
+        return true;
+    }
+
     if (open.ignore(pos, expected))
     {
+        if (isKeyword(pos, "SELECT") || isKeyword(pos, "WITH"))
+        {
+            ASTPtr subquery;
+            if (!parseNestedSelectRichQuery(pos, subquery, expected))
+                return false;
+            if (!close.ignore(pos, expected))
+                return false;
+            ASTs args;
+            args.push_back(subquery);
+            node = makeFunctionNode("subquery", args);
+            return true;
+        }
+
         ASTPtr first;
         if (!parseExpressionImpl(pos, first, expected, 1))
             return false;
@@ -526,8 +578,11 @@ bool parseSpecialComparison(IParser::Pos & pos, ASTPtr & lhs, Expected & expecte
         {
             ++look;
             ASTPtr list;
-            if (!parseExpressionListInParens(look, list, expected))
-                return false;
+            if (!parseSubqueryInParens(look, list, expected))
+            {
+                if (!parseExpressionListInParens(look, list, expected))
+                    return false;
+            }
 
             ASTs args;
             args.push_back(lhs);

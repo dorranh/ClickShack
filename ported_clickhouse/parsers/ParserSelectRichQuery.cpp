@@ -1,6 +1,8 @@
 #include "ported_clickhouse/parsers/ParserSelectRichQuery.h"
 
 #include "ported_clickhouse/parsers/ASTIdentifier.h"
+#include "ported_clickhouse/parsers/ASTExpressionList.h"
+#include "ported_clickhouse/parsers/ASTFunction.h"
 #include "ported_clickhouse/parsers/ASTSelectRichQuery.h"
 #include "ported_clickhouse/parsers/ASTSelectSetLite.h"
 #include "ported_clickhouse/parsers/CommonParsers.h"
@@ -13,6 +15,8 @@
 
 namespace DB
 {
+
+bool parseNestedSelectRichQuery(IParser::Pos & pos, ASTPtr & node, Expected & expected);
 
 namespace
 {
@@ -28,14 +32,107 @@ bool isWithAliasStop(TokenIterator pos)
 {
     return isKeyword(pos, "SELECT") || isKeyword(pos, "FROM") || isKeyword(pos, "WHERE") || isKeyword(pos, "GROUP")
         || isKeyword(pos, "HAVING") || isKeyword(pos, "ORDER") || isKeyword(pos, "LIMIT") || isKeyword(pos, "OFFSET")
-        || isKeyword(pos, "UNION") || isKeyword(pos, "BY") || pos->type == TokenType::Comma;
+        || isKeyword(pos, "UNION") || isKeyword(pos, "INTERSECT") || isKeyword(pos, "EXCEPT")
+        || isKeyword(pos, "SETTINGS") || isKeyword(pos, "FORMAT")
+        || isKeyword(pos, "BY") || pos->type == TokenType::Comma;
+}
+
+ASTPtr makeWithSubqueryItem(const String & alias, const ASTPtr & subquery)
+{
+    auto fn = make_intrusive<ASTFunction>();
+    fn->name = "with_subquery";
+    auto args = make_intrusive<ASTExpressionList>();
+    args->children.push_back(make_intrusive<ASTIdentifier>(alias));
+    args->children.push_back(subquery);
+    fn->set(fn->arguments, args);
+    return fn;
+}
+
+bool parseParenthesizedSubquery(IParser::Pos & pos, ASTPtr & subquery, Expected & expected)
+{
+    ParserToken open(TokenType::OpeningRoundBracket);
+    ParserToken close(TokenType::ClosingRoundBracket);
+    if (!open.ignore(pos, expected))
+        return false;
+    if (!parseNestedSelectRichQuery(pos, subquery, expected))
+        return false;
+    if (!close.ignore(pos, expected))
+        return false;
+    return true;
+}
+
+bool parseWithItem(IParser::Pos & pos, ASTPtr & item, Expected & expected)
+{
+    ParserExpressionOpsLite expr_p;
+    ParserIdentifier alias_p(/*allow_query_parameter*/ true);
+    ParserKeyword s_as(Keyword::AS);
+
+    // CTE-style: name AS (SELECT ...)
+    {
+        IParser::Pos cte_pos = pos;
+        ASTPtr alias_ast;
+        if (alias_p.parse(cte_pos, alias_ast, expected) && s_as.ignore(cte_pos, expected))
+        {
+            ASTPtr subquery;
+            if (parseParenthesizedSubquery(cte_pos, subquery, expected))
+            {
+                auto * alias_id = alias_ast ? alias_ast->as<ASTIdentifier>() : nullptr;
+                if (!alias_id)
+                    return false;
+                item = makeWithSubqueryItem(alias_id->name(), subquery);
+                pos = cte_pos;
+                return true;
+            }
+        }
+    }
+
+    // CTE-style: (SELECT ...) AS name
+    {
+        IParser::Pos cte_pos = pos;
+        ASTPtr subquery;
+        if (parseParenthesizedSubquery(cte_pos, subquery, expected) && s_as.ignore(cte_pos, expected))
+        {
+            ASTPtr alias_ast;
+            if (!alias_p.parse(cte_pos, alias_ast, expected))
+                return false;
+            auto * alias_id = alias_ast ? alias_ast->as<ASTIdentifier>() : nullptr;
+            if (!alias_id)
+                return false;
+            item = makeWithSubqueryItem(alias_id->name(), subquery);
+            pos = cte_pos;
+            return true;
+        }
+    }
+
+    ASTPtr expr;
+    if (!expr_p.parse(pos, expr, expected))
+        return false;
+
+    if (s_as.ignore(pos, expected))
+    {
+        ASTPtr ignore_alias;
+        if (!alias_p.parse(pos, ignore_alias, expected))
+            return false;
+    }
+    else if (!isWithAliasStop(pos))
+    {
+        IParser::Pos alias_pos = pos;
+        ASTPtr bare_alias;
+        if (alias_p.parse(alias_pos, bare_alias, expected))
+            pos = alias_pos;
+    }
+
+    item = expr;
+    return true;
 }
 
 bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
 {
     ParserKeyword s_with(Keyword::WITH);
+    ParserKeyword s_recursive(Keyword::RECURSIVE);
     ParserKeyword s_select(Keyword::SELECT);
     ParserKeyword s_distinct(Keyword::DISTINCT);
+    ParserKeyword s_all(Keyword::ALL);
     ParserKeyword s_from(Keyword::FROM);
     ParserKeyword s_final(Keyword::FINAL);
     ParserKeyword s_sample(Keyword::SAMPLE);
@@ -48,33 +145,16 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     ASTPtr with_expressions;
     if (s_with.ignore(pos, expected))
     {
-        ParserExpressionOpsLite expr_p;
-        ParserIdentifier alias_p(/*allow_query_parameter*/ true);
+        s_recursive.ignore(pos, expected);
         ParserToken comma(TokenType::Comma);
 
         auto list = make_intrusive<ASTExpressionList>();
         while (true)
         {
-            ASTPtr expr;
-            if (!expr_p.parse(pos, expr, expected))
+            ASTPtr item;
+            if (!parseWithItem(pos, item, expected))
                 return false;
-
-            // Accept optional WITH alias syntax and ignore alias payload in parser-only bridge.
-            if (s_as.ignore(pos, expected))
-            {
-                ASTPtr ignore_alias;
-                if (!alias_p.parse(pos, ignore_alias, expected))
-                    return false;
-            }
-            else if (!isWithAliasStop(pos))
-            {
-                IParser::Pos alias_pos = pos;
-                ASTPtr bare_alias;
-                if (alias_p.parse(alias_pos, bare_alias, expected))
-                    pos = alias_pos;
-            }
-
-            list->children.push_back(expr);
+            list->children.push_back(item);
             if (!comma.ignore(pos, expected))
                 break;
         }
@@ -85,6 +165,8 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         return false;
 
     bool distinct = s_distinct.ignore(pos, expected);
+    if (!distinct)
+        s_all.ignore(pos, expected);
 
     ParserExpressionListOpsLite projection_p;
     ASTPtr projections;
@@ -165,6 +247,9 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         query->set(query->where_expression, clauses.where_expression);
     if (clauses.group_by_expressions)
         query->set(query->group_by_expressions, clauses.group_by_expressions);
+    query->group_by_with_rollup = clauses.group_by_with_rollup;
+    query->group_by_with_cube = clauses.group_by_with_cube;
+    query->group_by_with_totals = clauses.group_by_with_totals;
     if (clauses.having_expression)
         query->set(query->having_expression, clauses.having_expression);
     if (clauses.window_list)
@@ -179,6 +264,68 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         query->set(query->limit_by, clauses.limit_by);
 
     node = query;
+    return true;
+}
+
+bool parseSettingsAndFormat(IParser::Pos & pos, ASTPtr & settings_node, bool & has_format, String & format_name, Expected & expected)
+{
+    ParserKeyword s_settings(Keyword::SETTINGS);
+    ParserKeyword s_format(Keyword::FORMAT);
+    ParserIdentifier identifier_p(/*allow_query_parameter*/ true);
+    ParserExpressionOpsLite expr_p;
+    ParserToken equals(TokenType::Equals);
+    ParserToken comma(TokenType::Comma);
+
+    has_format = false;
+    format_name.clear();
+
+    if (s_settings.ignore(pos, expected))
+    {
+        auto settings = make_intrusive<ASTExpressionList>();
+
+        while (true)
+        {
+            ASTPtr key_ast;
+            if (!identifier_p.parse(pos, key_ast, expected))
+                return false;
+            auto * key_id = key_ast ? key_ast->as<ASTIdentifier>() : nullptr;
+            if (!key_id)
+                return false;
+
+            if (!equals.ignore(pos, expected))
+                return false;
+
+            ASTPtr value_ast;
+            if (!expr_p.parse(pos, value_ast, expected))
+                return false;
+
+            auto setting_fn = make_intrusive<ASTFunction>();
+            setting_fn->name = "setting";
+            auto args = make_intrusive<ASTExpressionList>();
+            args->children.push_back(make_intrusive<ASTIdentifier>(key_id->name()));
+            args->children.push_back(value_ast);
+            setting_fn->set(setting_fn->arguments, args);
+            settings->children.push_back(setting_fn);
+
+            if (!comma.ignore(pos, expected))
+                break;
+        }
+
+        settings_node = settings;
+    }
+
+    if (s_format.ignore(pos, expected))
+    {
+        ASTPtr format_ast;
+        if (!identifier_p.parse(pos, format_ast, expected))
+            return false;
+        auto * format_id = format_ast ? format_ast->as<ASTIdentifier>() : nullptr;
+        if (!format_id)
+            return false;
+        has_format = true;
+        format_name = format_id->name();
+    }
+
     return true;
 }
 
@@ -197,6 +344,8 @@ bool ParserSelectRichQuery::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
         return false;
 
     ParserKeyword s_union(Keyword::UNION);
+    ParserKeyword s_intersect(Keyword::INTERSECT);
+    ParserKeyword s_except(Keyword::EXCEPT);
     ParserKeyword s_all(Keyword::ALL);
     ParserKeyword s_distinct(Keyword::DISTINCT);
 
@@ -207,7 +356,14 @@ bool ParserSelectRichQuery::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
     while (true)
     {
         Pos union_pos = pos;
-        if (!s_union.ignore(union_pos, expected))
+        String op;
+        if (s_union.ignore(union_pos, expected))
+            op = "UNION";
+        else if (s_intersect.ignore(union_pos, expected))
+            op = "INTERSECT";
+        else if (s_except.ignore(union_pos, expected))
+            op = "EXCEPT";
+        else
             break;
 
         String mode = "DISTINCT";
@@ -226,12 +382,37 @@ bool ParserSelectRichQuery::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
             has_union = true;
         }
 
+        union_set->set_ops.push_back(op);
         union_set->union_modes.push_back(mode);
         union_set->children.push_back(next_query);
         pos = union_pos;
     }
 
-    node = has_union ? ASTPtr(union_set) : current;
+    ASTPtr settings_node;
+    bool has_format = false;
+    String format_name;
+    if (!parseSettingsAndFormat(pos, settings_node, has_format, format_name, expected))
+        return false;
+
+    if (has_union)
+    {
+        if (settings_node)
+            union_set->set(union_set->settings, settings_node);
+        union_set->has_format = has_format;
+        union_set->format_name = format_name;
+        node = union_set;
+    }
+    else
+    {
+        auto * single = current ? current->as<ASTSelectRichQuery>() : nullptr;
+        if (!single)
+            return false;
+        if (settings_node)
+            single->set(single->settings, settings_node);
+        single->has_format = has_format;
+        single->format_name = format_name;
+        node = current;
+    }
     return true;
 }
 

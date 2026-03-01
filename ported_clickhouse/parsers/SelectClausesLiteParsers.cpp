@@ -174,6 +174,18 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
     ParserKeyword s_limit(Keyword::LIMIT);
     ParserKeyword s_offset(Keyword::OFFSET);
     ParserKeyword s_qualify(Keyword::QUALIFY);
+    ParserKeyword s_with(Keyword::WITH);
+    ParserKeyword s_ties(Keyword::TIES);
+    ParserKeyword s_all(Keyword::ALL);
+    ParserKeyword s_rollup(Keyword::ROLLUP);
+    ParserKeyword s_cube(Keyword::CUBE);
+    ParserKeyword s_totals(Keyword::TOTALS);
+    ParserKeyword s_fetch(Keyword::FETCH);
+    ParserKeyword s_first(Keyword::FIRST);
+    ParserKeyword s_next(Keyword::NEXT);
+    ParserKeyword s_row(Keyword::ROW);
+    ParserKeyword s_rows(Keyword::ROWS);
+    ParserKeyword s_only(Keyword::ONLY);
 
     if (s_prewhere.ignore(pos, expected))
     {
@@ -196,6 +208,24 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         ParserExpressionListOpsLite expr_list_p;
         if (!expr_list_p.parse(pos, result.group_by_expressions, expected))
             return false;
+
+        while (true)
+        {
+            IParser::Pos mod_pos = pos;
+            if (!s_with.ignore(mod_pos, expected))
+                break;
+
+            if (s_rollup.ignore(mod_pos, expected))
+                result.group_by_with_rollup = true;
+            else if (s_cube.ignore(mod_pos, expected))
+                result.group_by_with_cube = true;
+            else if (s_totals.ignore(mod_pos, expected))
+                result.group_by_with_totals = true;
+            else
+                return false;
+
+            pos = mod_pos;
+        }
     }
 
     if (s_having.ignore(pos, expected))
@@ -233,17 +263,57 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         if (!parseNumberToken(pos, limit_value))
             return false;
 
+        // LIMIT offset,count BY ...
+        IParser::Pos comma_by_pos = pos;
+        if (comma.ignore(comma_by_pos, expected))
+        {
+            String count_value;
+            if (!parseNumberToken(comma_by_pos, count_value))
+                return false;
+
+            if (s_by.ignore(comma_by_pos, expected))
+            {
+                auto limit_by = make_intrusive<ASTLimitByLite>();
+                limit_by->offset_present = true;
+                limit_by->offset = limit_value;
+                limit_by->limit = count_value;
+
+                if (s_all.ignore(comma_by_pos, expected))
+                {
+                    limit_by->by_all = true;
+                }
+                else
+                {
+                    ASTPtr by_exprs;
+                    ParserExpressionListOpsLite expr_list_p;
+                    if (!expr_list_p.parse(comma_by_pos, by_exprs, expected))
+                        return false;
+                    limit_by->set(limit_by->by_expressions, by_exprs);
+                }
+                result.limit_by = limit_by;
+                pos = comma_by_pos;
+                return true;
+            }
+        }
+
         IParser::Pos by_pos = pos;
         if (s_by.ignore(by_pos, expected))
         {
-            ASTPtr by_exprs;
-            ParserExpressionListOpsLite expr_list_p;
-            if (!expr_list_p.parse(by_pos, by_exprs, expected))
-                return false;
-
             auto limit_by = make_intrusive<ASTLimitByLite>();
             limit_by->limit = limit_value;
-            limit_by->set(limit_by->by_expressions, by_exprs);
+
+            if (s_all.ignore(by_pos, expected))
+            {
+                limit_by->by_all = true;
+            }
+            else
+            {
+                ASTPtr by_exprs;
+                ParserExpressionListOpsLite expr_list_p;
+                if (!expr_list_p.parse(by_pos, by_exprs, expected))
+                    return false;
+                limit_by->set(limit_by->by_expressions, by_exprs);
+            }
             result.limit_by = limit_by;
             pos = by_pos;
             return true;
@@ -262,22 +332,84 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
             limit->offset = limit_value;
             limit->limit = second_value;
             pos = comma_pos;
-            result.limit = limit;
-            return true;
+        }
+        else
+        {
+            IParser::Pos offset_pos = pos;
+            if (s_offset.ignore(offset_pos, expected))
+            {
+                String offset_value;
+                if (!parseNumberToken(offset_pos, offset_value))
+                    return false;
+                limit->offset_present = true;
+                limit->offset = offset_value;
+                pos = offset_pos;
+            }
         }
 
-        IParser::Pos offset_pos = pos;
-        if (s_offset.ignore(offset_pos, expected))
+        IParser::Pos ties_pos = pos;
+        if (s_with.ignore(ties_pos, expected))
         {
-            String offset_value;
-            if (!parseNumberToken(offset_pos, offset_value))
+            if (!s_ties.ignore(ties_pos, expected))
                 return false;
-            limit->offset_present = true;
-            limit->offset = offset_value;
-            pos = offset_pos;
+            limit->with_ties = true;
+            pos = ties_pos;
         }
 
         result.limit = limit;
+    }
+    else
+    {
+        // OFFSET <n> [ROW|ROWS] FETCH {FIRST|NEXT} <n> {ROW|ROWS} {ONLY|WITH TIES}
+        IParser::Pos fetch_pos = pos;
+        auto limit = make_intrusive<ASTLimitLite>();
+        bool saw_fetch = false;
+
+        if (s_offset.ignore(fetch_pos, expected))
+        {
+            String offset_value;
+            if (!parseNumberToken(fetch_pos, offset_value))
+                return false;
+            limit->offset_present = true;
+            limit->offset = offset_value;
+            s_row.ignore(fetch_pos, expected) || s_rows.ignore(fetch_pos, expected);
+        }
+
+        if (s_fetch.ignore(fetch_pos, expected))
+        {
+            if (!s_first.ignore(fetch_pos, expected))
+                s_next.ignore(fetch_pos, expected);
+
+            String fetch_count;
+            if (!parseNumberToken(fetch_pos, fetch_count))
+                return false;
+            limit->limit = fetch_count;
+            saw_fetch = true;
+
+            if (!s_row.ignore(fetch_pos, expected))
+                s_rows.ignore(fetch_pos, expected);
+
+            if (s_only.ignore(fetch_pos, expected))
+            {
+                // no-op
+            }
+            else if (s_with.ignore(fetch_pos, expected))
+            {
+                if (!s_ties.ignore(fetch_pos, expected))
+                    return false;
+                limit->with_ties = true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        if (saw_fetch)
+        {
+            pos = fetch_pos;
+            result.limit = limit;
+        }
     }
 
     return true;

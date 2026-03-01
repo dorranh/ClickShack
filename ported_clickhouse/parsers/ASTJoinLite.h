@@ -19,6 +19,8 @@ public:
     };
 
     JoinType join_type = JoinType::Inner;
+    bool is_global = false;
+    String strictness;
     IAST * left = nullptr;
     IAST * right = nullptr;
     IAST * on_expression = nullptr;
@@ -42,6 +44,8 @@ public:
     {
         auto res = make_intrusive<ASTJoinLite>();
         res->join_type = join_type;
+        res->is_global = is_global;
+        res->strictness = strictness;
         if (left)
             res->set(res->left, left->clone());
         if (right)
