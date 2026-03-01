@@ -17,6 +17,8 @@ std::string_view toStringView(Keyword type)
             return "DATABASE";
         case Keyword::SELECT:
             return "SELECT";
+        case Keyword::FROM:
+            return "FROM";
     }
     return "";
 }

@@ -78,3 +78,25 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "parser_select_from_lite_stack",
+    srcs = [
+        "ASTTableIdentifierLite.cpp",
+        "ParserSelectFromLiteQuery.cpp",
+        "TableExpressionLiteParsers.cpp",
+    ],
+    hdrs = [
+        "ASTSelectFromLiteQuery.h",
+        "ASTTableIdentifierLite.h",
+        "ParserSelectFromLiteQuery.h",
+        "TableExpressionLiteParsers.h",
+    ],
+    deps = [
+        ":parser_select_lite_stack",
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+    ],
+    visibility = ["//visibility:public"],
+)
