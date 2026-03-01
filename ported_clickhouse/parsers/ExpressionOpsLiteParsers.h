@@ -19,4 +19,11 @@ protected:
     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
 };
 
+class ParserProjectionListOpsLite : public IParserBase
+{
+protected:
+    const char * getName() const override { return "projection list ops lite"; }
+    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+};
+
 }

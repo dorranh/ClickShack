@@ -129,6 +129,18 @@ std::string_view toStringView(Keyword type)
             return "CUBE";
         case Keyword::TOTALS:
             return "TOTALS";
+        case Keyword::ESCAPE:
+            return "ESCAPE";
+        case Keyword::FILL:
+            return "FILL";
+        case Keyword::TO:
+            return "TO";
+        case Keyword::STEP:
+            return "STEP";
+        case Keyword::STALENESS:
+            return "STALENESS";
+        case Keyword::INTERPOLATE:
+            return "INTERPOLATE";
     }
     return "";
 }

@@ -168,7 +168,7 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     if (!distinct)
         s_all.ignore(pos, expected);
 
-    ParserExpressionListOpsLite projection_p;
+    ParserProjectionListOpsLite projection_p;
     ASTPtr projections;
     if (!projection_p.parse(pos, projections, expected))
         return false;
@@ -247,6 +247,7 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         query->set(query->where_expression, clauses.where_expression);
     if (clauses.group_by_expressions)
         query->set(query->group_by_expressions, clauses.group_by_expressions);
+    query->group_by_all = clauses.group_by_all;
     query->group_by_with_rollup = clauses.group_by_with_rollup;
     query->group_by_with_cube = clauses.group_by_with_cube;
     query->group_by_with_totals = clauses.group_by_with_totals;

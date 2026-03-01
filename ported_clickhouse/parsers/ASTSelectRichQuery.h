@@ -25,6 +25,7 @@ public:
     IAST * prewhere_expression = nullptr;
     IAST * where_expression = nullptr;
     ASTExpressionList * group_by_expressions = nullptr;
+    bool group_by_all = false;
     bool group_by_with_rollup = false;
     bool group_by_with_cube = false;
     bool group_by_with_totals = false;
@@ -67,6 +68,7 @@ public:
             res->set(res->where_expression, where_expression->clone());
         if (group_by_expressions)
             res->set(res->group_by_expressions, group_by_expressions->clone());
+        res->group_by_all = group_by_all;
         res->group_by_with_rollup = group_by_with_rollup;
         res->group_by_with_cube = group_by_with_cube;
         res->group_by_with_totals = group_by_with_totals;

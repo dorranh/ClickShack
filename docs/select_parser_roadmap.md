@@ -22,12 +22,15 @@ Supported in `select_rich` bridge:
 - `FROM` tail support: `FINAL`, `SAMPLE <expr> [OFFSET <expr>]`, `[LEFT] ARRAY JOIN <expr_list>`
 - optional clauses: `WHERE`, `GROUP BY`, `HAVING`, `WINDOW`, `QUALIFY`, `ORDER BY`, `LIMIT [OFFSET]`, `LIMIT <n> BY ...`, `OFFSET ... FETCH ...`
 - group modifiers: `GROUP BY ... WITH ROLLUP|CUBE|TOTALS`
+- group variants: `GROUP BY ALL`
 - optional limit variants: `LIMIT offset,count`, `LIMIT ... WITH TIES`, `LIMIT ... BY ALL`
-- limit-by variants: `LIMIT <n> BY ...` and `LIMIT offset,count BY ...`
+- limit-by variants: `LIMIT <n> BY ...`, `LIMIT offset,count BY ...`, and `LIMIT <n> OFFSET <m> BY ...`
 - set/surface forms: `WITH [RECURSIVE]`, `SELECT ALL|DISTINCT`, `UNION|INTERSECT|EXCEPT [ALL|DISTINCT]`, trailing `SETTINGS` and `FORMAT`
+- projection aliases: `expr AS alias` and `expr alias` in SELECT list
 - `WITH` supports parser-only CTE-style items: `name AS (SELECT ...)` and `(SELECT ...) AS name`
-- expression ops-lite: unary/arithmetic/comparison/`AND`/`OR`/parentheses, `IN` (list or subquery RHS), `BETWEEN`, `LIKE/ILIKE`, `IS [NOT] NULL`, casts (`CAST`, `::`), `CASE`, `EXISTS`, subquery atoms (`(SELECT ...)`), `*`/`table.*`, array literals, tuple literals
+- expression ops-lite: unary/arithmetic/comparison/`AND`/`OR`/parentheses, `IN` (list or subquery RHS), `BETWEEN`, `LIKE/ILIKE [ESCAPE ...]`, `IS [NOT] NULL`, `IS [NOT] DISTINCT FROM`, `<=>`, `^`, `|`, `||`, lambda `->`, casts (`CAST`, `::`, complex type tokens in `CAST AS`), `CASE`, `EXISTS`, subquery atoms (`(SELECT ...)`), `*`/`table.*`, array literals, tuple literals
 - `ORDER BY` parser-only modifiers: `NULLS FIRST/LAST`, `COLLATE <name>`
+- `ORDER BY` parser-only ClickHouse fill modifiers: `WITH FILL [FROM/TO/STEP/STALENESS] [INTERPOLATE ...]`
 
 ## Operating Rules For Future Work
 

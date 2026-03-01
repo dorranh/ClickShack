@@ -40,7 +40,9 @@ bool isReservedExpressionBoundary(TokenIterator pos)
         || isKeyword(pos, "ROW") || isKeyword(pos, "ROWS") || isKeyword(pos, "ONLY")
         || isKeyword(pos, "INTERSECT") || isKeyword(pos, "EXCEPT")
         || isKeyword(pos, "SETTINGS") || isKeyword(pos, "FORMAT")
-        || isKeyword(pos, "ROLLUP") || isKeyword(pos, "CUBE") || isKeyword(pos, "TOTALS");
+        || isKeyword(pos, "ROLLUP") || isKeyword(pos, "CUBE") || isKeyword(pos, "TOTALS")
+        || isKeyword(pos, "FILL") || isKeyword(pos, "TO") || isKeyword(pos, "STEP")
+        || isKeyword(pos, "STALENESS") || isKeyword(pos, "INTERPOLATE");
 }
 
 ASTPtr makeUnary(const String & op, const ASTPtr & rhs)
@@ -114,6 +116,56 @@ bool parseIdentifierPath(IParser::Pos & pos, String & out, Expected & expected)
     }
 
     return true;
+}
+
+bool parseCastTypeUntilClosingParen(IParser::Pos & pos, String & type_name)
+{
+    if (pos->isEnd())
+        return false;
+
+    const char * begin = pos->begin;
+    const char * end = begin;
+    int depth = 0;
+
+    while (!pos->isEnd())
+    {
+        if (pos->type == TokenType::OpeningRoundBracket)
+            ++depth;
+        else if (pos->type == TokenType::ClosingRoundBracket)
+        {
+            if (depth == 0)
+                break;
+            --depth;
+        }
+
+        end = pos->end;
+        ++pos;
+    }
+
+    if (begin == end)
+        return false;
+
+    type_name.assign(begin, end);
+    return true;
+}
+
+bool isProjectionAliasStop(TokenIterator pos)
+{
+    return pos->type == TokenType::Comma || isKeyword(pos, "FROM") || isKeyword(pos, "PREWHERE") || isKeyword(pos, "WHERE")
+        || isKeyword(pos, "GROUP") || isKeyword(pos, "HAVING") || isKeyword(pos, "WINDOW") || isKeyword(pos, "QUALIFY")
+        || isKeyword(pos, "ORDER") || isKeyword(pos, "LIMIT") || isKeyword(pos, "OFFSET") || isKeyword(pos, "UNION")
+        || isKeyword(pos, "INTERSECT") || isKeyword(pos, "EXCEPT") || isKeyword(pos, "SETTINGS") || isKeyword(pos, "FORMAT");
+}
+
+ASTPtr wrapAlias(const ASTPtr & expr, const String & alias)
+{
+    auto fn = make_intrusive<ASTFunction>();
+    fn->name = "alias";
+    auto args = make_intrusive<ASTExpressionList>();
+    args->children.push_back(expr);
+    args->children.push_back(make_intrusive<ASTIdentifier>(alias));
+    fn->set(fn->arguments, args);
+    return fn;
 }
 
 bool parseExpressionListInParens(IParser::Pos & pos, ASTPtr & node, Expected & expected)
@@ -375,7 +427,7 @@ bool parsePrimary(IParser::Pos & pos, ASTPtr & node, Expected & expected)
             ++pos;
 
             String type_name;
-            if (!parseIdentifierPath(pos, type_name, expected))
+            if (!parseCastTypeUntilClosingParen(pos, type_name))
                 return false;
 
             if (!fn_close.ignore(pos, expected))
@@ -470,6 +522,10 @@ bool readBinaryOperator(IParser::Pos pos, String & op, int & precedence)
             op = "::";
             precedence = 7;
             return true;
+        case TokenType::Concatenation:
+            op = "||";
+            precedence = 5;
+            return true;
         case TokenType::Asterisk:
             op = "*";
             precedence = 6;
@@ -514,6 +570,22 @@ bool readBinaryOperator(IParser::Pos pos, String & op, int & precedence)
             op = ">=";
             precedence = 4;
             return true;
+        case TokenType::Spaceship:
+            op = "<=>";
+            precedence = 4;
+            return true;
+        case TokenType::Caret:
+            op = "^";
+            precedence = 5;
+            return true;
+        case TokenType::PipeMark:
+            op = "|";
+            precedence = 5;
+            return true;
+        case TokenType::Arrow:
+            op = "->";
+            precedence = 1;
+            return true;
         default:
             break;
     }
@@ -552,6 +624,26 @@ bool parseSpecialComparison(IParser::Pos & pos, ASTPtr & lhs, Expected & expecte
                 is_not = true;
                 ++look;
             }
+
+            if (isKeyword(look, "DISTINCT"))
+            {
+                ++look;
+                if (!isKeyword(look, "FROM"))
+                    return false;
+                ++look;
+
+                ASTPtr rhs;
+                if (!parseExpressionImpl(look, rhs, expected, 4))
+                    return false;
+
+                ASTs args;
+                args.push_back(lhs);
+                args.push_back(rhs);
+                lhs = makeFunctionNode(is_not ? "isNotDistinctFrom" : "isDistinctFrom", args);
+                pos = look;
+                return true;
+            }
+
             if (!isKeyword(look, "NULL"))
                 return false;
             ++look;
@@ -622,14 +714,24 @@ bool parseSpecialComparison(IParser::Pos & pos, ASTPtr & lhs, Expected & expecte
             if (!parseExpressionImpl(look, pattern, expected, 4))
                 return false;
 
+            ASTPtr escape_expr;
+            if (isKeyword(look, "ESCAPE"))
+            {
+                ++look;
+                if (!parseExpressionImpl(look, escape_expr, expected, 4))
+                    return false;
+            }
+
             ASTs args;
             args.push_back(lhs);
             args.push_back(pattern);
+            if (escape_expr)
+                args.push_back(escape_expr);
 
             if (not_prefix)
-                lhs = makeFunctionNode(ilike ? "notILike" : "notLike", args);
+                lhs = makeFunctionNode(ilike ? (escape_expr ? "notILikeEscape" : "notILike") : (escape_expr ? "notLikeEscape" : "notLike"), args);
             else
-                lhs = makeFunctionNode(ilike ? "iLike" : "like", args);
+                lhs = makeFunctionNode(ilike ? (escape_expr ? "iLikeEscape" : "iLike") : (escape_expr ? "likeEscape" : "like"), args);
 
             pos = look;
             return true;
@@ -699,6 +801,56 @@ bool ParserExpressionListOpsLite::parseImpl(Pos & pos, ASTPtr & node, Expected &
         if (!expr_p.parse(pos, next, expected))
             return false;
         list->children.push_back(next);
+    }
+
+    node = list;
+    return true;
+}
+
+bool ParserProjectionListOpsLite::parseImpl(Pos & pos, ASTPtr & node, Expected & expected)
+{
+    ParserExpressionOpsLite expr_p;
+    ParserIdentifier alias_p(/*allow_query_parameter*/ true);
+    ParserKeyword s_as(Keyword::AS);
+    ParserToken comma(TokenType::Comma);
+
+    auto list = make_intrusive<ASTExpressionList>();
+
+    while (true)
+    {
+        ASTPtr expr;
+        if (!expr_p.parse(pos, expr, expected))
+            return false;
+
+        ASTPtr aliased = expr;
+        if (s_as.ignore(pos, expected))
+        {
+            ASTPtr alias_ast;
+            if (!alias_p.parse(pos, alias_ast, expected))
+                return false;
+            auto * alias_id = alias_ast ? alias_ast->as<ASTIdentifier>() : nullptr;
+            if (!alias_id)
+                return false;
+            aliased = wrapAlias(expr, alias_id->name());
+        }
+        else if (!isProjectionAliasStop(pos))
+        {
+            IParser::Pos alias_pos = pos;
+            ASTPtr alias_ast;
+            if (alias_p.parse(alias_pos, alias_ast, expected))
+            {
+                auto * alias_id = alias_ast ? alias_ast->as<ASTIdentifier>() : nullptr;
+                if (!alias_id)
+                    return false;
+                aliased = wrapAlias(expr, alias_id->name());
+                pos = alias_pos;
+            }
+        }
+
+        list->children.push_back(aliased);
+
+        if (!comma.ignore(pos, expected))
+            break;
     }
 
     node = list;

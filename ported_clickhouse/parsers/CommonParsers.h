@@ -68,6 +68,12 @@ enum class Keyword : UInt8
     ROLLUP,
     CUBE,
     TOTALS,
+    ESCAPE,
+    FILL,
+    TO,
+    STEP,
+    STALENESS,
+    INTERPOLATE,
 };
 
 std::string_view toStringView(Keyword type);

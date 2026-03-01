@@ -40,6 +40,15 @@ bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     ParserExpressionOpsLite expr_p;
     ParserIdentifier identifier_p(/*allow_query_parameter*/ true);
     ParserToken comma(TokenType::Comma);
+    ParserKeyword s_with(Keyword::WITH);
+    ParserKeyword s_fill(Keyword::FILL);
+    ParserKeyword s_from(Keyword::FROM);
+    ParserKeyword s_to(Keyword::TO);
+    ParserKeyword s_step(Keyword::STEP);
+    ParserKeyword s_staleness(Keyword::STALENESS);
+    ParserKeyword s_interpolate(Keyword::INTERPOLATE);
+    ParserToken open(TokenType::OpeningRoundBracket);
+    ParserToken close(TokenType::ClosingRoundBracket);
 
     auto list = make_intrusive<ASTOrderByListLite>();
 
@@ -80,6 +89,62 @@ bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
             ASTPtr collate_name;
             if (!identifier_p.parse(pos, collate_name, expected))
                 return false;
+        }
+
+        // Parser-only acceptance for WITH FILL [FROM expr] [TO expr] [STEP expr] [STALENESS expr].
+        IParser::Pos fill_pos = pos;
+        if (s_with.ignore(fill_pos, expected))
+        {
+            if (!s_fill.ignore(fill_pos, expected))
+                return false;
+
+            ASTPtr ignored;
+            if (s_from.ignore(fill_pos, expected))
+            {
+                if (!expr_p.parse(fill_pos, ignored, expected))
+                    return false;
+            }
+            if (s_to.ignore(fill_pos, expected))
+            {
+                if (!expr_p.parse(fill_pos, ignored, expected))
+                    return false;
+            }
+            if (s_step.ignore(fill_pos, expected))
+            {
+                if (!expr_p.parse(fill_pos, ignored, expected))
+                    return false;
+            }
+            if (s_staleness.ignore(fill_pos, expected))
+            {
+                if (!expr_p.parse(fill_pos, ignored, expected))
+                    return false;
+            }
+
+            pos = fill_pos;
+        }
+
+        // Parser-only acceptance for optional INTERPOLATE clause after WITH FILL.
+        IParser::Pos interp_pos = pos;
+        if (s_interpolate.ignore(interp_pos, expected))
+        {
+            if (open.ignore(interp_pos, expected))
+            {
+                if (!close.ignore(interp_pos, expected))
+                {
+                    while (true)
+                    {
+                        ASTPtr ignored;
+                        if (!expr_p.parse(interp_pos, ignored, expected))
+                            return false;
+                        ParserToken comma2(TokenType::Comma);
+                        if (!comma2.ignore(interp_pos, expected))
+                            break;
+                    }
+                    if (!close.ignore(interp_pos, expected))
+                        return false;
+                }
+            }
+            pos = interp_pos;
         }
 
         list->children.push_back(elem);
@@ -205,9 +270,16 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
     {
         if (!s_by.ignore(pos, expected))
             return false;
-        ParserExpressionListOpsLite expr_list_p;
-        if (!expr_list_p.parse(pos, result.group_by_expressions, expected))
-            return false;
+        if (s_all.ignore(pos, expected))
+        {
+            result.group_by_all = true;
+        }
+        else
+        {
+            ParserExpressionListOpsLite expr_list_p;
+            if (!expr_list_p.parse(pos, result.group_by_expressions, expected))
+                return false;
+        }
 
         while (true)
         {
@@ -262,6 +334,39 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         String limit_value;
         if (!parseNumberToken(pos, limit_value))
             return false;
+
+        // LIMIT count OFFSET offset BY ...
+        IParser::Pos offset_by_pos = pos;
+        if (s_offset.ignore(offset_by_pos, expected))
+        {
+            String offset_value;
+            if (!parseNumberToken(offset_by_pos, offset_value))
+                return false;
+
+            if (s_by.ignore(offset_by_pos, expected))
+            {
+                auto limit_by = make_intrusive<ASTLimitByLite>();
+                limit_by->limit = limit_value;
+                limit_by->offset_present = true;
+                limit_by->offset = offset_value;
+
+                if (s_all.ignore(offset_by_pos, expected))
+                {
+                    limit_by->by_all = true;
+                }
+                else
+                {
+                    ASTPtr by_exprs;
+                    ParserExpressionListOpsLite expr_list_p;
+                    if (!expr_list_p.parse(offset_by_pos, by_exprs, expected))
+                        return false;
+                    limit_by->set(limit_by->by_expressions, by_exprs);
+                }
+                result.limit_by = limit_by;
+                pos = offset_by_pos;
+                return true;
+            }
+        }
 
         // LIMIT offset,count BY ...
         IParser::Pos comma_by_pos = pos;
