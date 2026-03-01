@@ -17,6 +17,12 @@ public:
     bool distinct = false;
     ASTExpressionList * expressions = nullptr;
     IAST * from_source = nullptr;
+    bool from_final = false;
+    IAST * sample_size = nullptr;
+    IAST * sample_offset = nullptr;
+    ASTExpressionList * array_join_expressions = nullptr;
+    bool array_join_is_left = false;
+    IAST * prewhere_expression = nullptr;
     IAST * where_expression = nullptr;
     ASTExpressionList * group_by_expressions = nullptr;
     IAST * having_expression = nullptr;
@@ -41,6 +47,16 @@ public:
             res->set(res->expressions, expressions->clone());
         if (from_source)
             res->set(res->from_source, from_source->clone());
+        res->from_final = from_final;
+        if (sample_size)
+            res->set(res->sample_size, sample_size->clone());
+        if (sample_offset)
+            res->set(res->sample_offset, sample_offset->clone());
+        if (array_join_expressions)
+            res->set(res->array_join_expressions, array_join_expressions->clone());
+        res->array_join_is_left = array_join_is_left;
+        if (prewhere_expression)
+            res->set(res->prewhere_expression, prewhere_expression->clone());
         if (where_expression)
             res->set(res->where_expression, where_expression->clone());
         if (group_by_expressions)

@@ -33,7 +33,8 @@ bool isReservedExpressionBoundary(TokenIterator pos)
         || isKeyword(pos, "DESC") || isKeyword(pos, "HAVING") || isKeyword(pos, "UNION") || isKeyword(pos, "ALL")
         || isKeyword(pos, "WITH") || isKeyword(pos, "DISTINCT") || isKeyword(pos, "WHEN") || isKeyword(pos, "THEN")
         || isKeyword(pos, "ELSE") || isKeyword(pos, "END") || isKeyword(pos, "WINDOW") || isKeyword(pos, "QUALIFY")
-        || isKeyword(pos, "USING");
+        || isKeyword(pos, "USING") || isKeyword(pos, "PREWHERE") || isKeyword(pos, "ARRAY")
+        || isKeyword(pos, "SAMPLE") || isKeyword(pos, "FINAL");
 }
 
 ASTPtr makeUnary(const String & op, const ASTPtr & rhs)
@@ -253,6 +254,22 @@ bool parsePrimary(IParser::Pos & pos, ASTPtr & node, Expected & expected)
 
     if (pos->type == TokenType::Number)
     {
+        IParser::Pos look = pos;
+        ++look;
+        if (!look->isEnd() && look->type == TokenType::Dot)
+        {
+            IParser::Pos frac = look;
+            ++frac;
+            if (!frac->isEnd() && frac->type == TokenType::Number)
+            {
+                String value(pos->begin, frac->end);
+                node = make_intrusive<ASTLiteral>(ASTLiteral::Kind::Number, value);
+                ++frac;
+                pos = frac;
+                return true;
+            }
+        }
+
         node = make_intrusive<ASTLiteral>(ASTLiteral::Kind::Number, String(pos->begin, pos->end));
         ++pos;
         return true;

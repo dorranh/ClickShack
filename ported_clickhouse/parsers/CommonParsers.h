@@ -14,6 +14,7 @@ enum class Keyword : UInt8
     SELECT,
     FROM,
     WHERE,
+    PREWHERE,
     GROUP,
     BY,
     ORDER,
@@ -40,6 +41,13 @@ enum class Keyword : UInt8
     USING,
     QUALIFY,
     WINDOW,
+    ARRAY,
+    SAMPLE,
+    FINAL,
+    NULLS,
+    FIRST,
+    LAST,
+    COLLATE,
 };
 
 std::string_view toStringView(Keyword type);

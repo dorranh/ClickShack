@@ -7,6 +7,7 @@ namespace DB
 
 struct SelectClausesLiteResult
 {
+    ASTPtr prewhere_expression;
     ASTPtr where_expression;
     ASTPtr group_by_expressions;
     ASTPtr having_expression;

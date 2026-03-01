@@ -21,6 +21,8 @@ std::string_view toStringView(Keyword type)
             return "FROM";
         case Keyword::WHERE:
             return "WHERE";
+        case Keyword::PREWHERE:
+            return "PREWHERE";
         case Keyword::GROUP:
             return "GROUP";
         case Keyword::BY:
@@ -73,6 +75,20 @@ std::string_view toStringView(Keyword type)
             return "QUALIFY";
         case Keyword::WINDOW:
             return "WINDOW";
+        case Keyword::ARRAY:
+            return "ARRAY";
+        case Keyword::SAMPLE:
+            return "SAMPLE";
+        case Keyword::FINAL:
+            return "FINAL";
+        case Keyword::NULLS:
+            return "NULLS";
+        case Keyword::FIRST:
+            return "FIRST";
+        case Keyword::LAST:
+            return "LAST";
+        case Keyword::COLLATE:
+            return "COLLATE";
     }
     return "";
 }

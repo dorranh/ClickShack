@@ -38,6 +38,7 @@ bool parseNumberToken(IParser::Pos & pos, String & out)
 bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
 {
     ParserExpressionOpsLite expr_p;
+    ParserIdentifier identifier_p(/*allow_query_parameter*/ true);
     ParserToken comma(TokenType::Comma);
 
     auto list = make_intrusive<ASTOrderByListLite>();
@@ -60,6 +61,25 @@ bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         {
             elem->direction = ASTOrderByElementLite::Direction::Desc;
             ++pos;
+        }
+
+        // Parser-only acceptance for NULLS FIRST/LAST modifiers.
+        if (isKeyword(pos, "NULLS"))
+        {
+            ++pos;
+            if (isKeyword(pos, "FIRST") || isKeyword(pos, "LAST"))
+                ++pos;
+            else
+                return false;
+        }
+
+        // Parser-only acceptance for COLLATE <name>; payload is intentionally ignored.
+        if (isKeyword(pos, "COLLATE"))
+        {
+            ++pos;
+            ASTPtr collate_name;
+            if (!identifier_p.parse(pos, collate_name, expected))
+                return false;
         }
 
         list->children.push_back(elem);
@@ -144,6 +164,7 @@ bool parseWindowList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
 
 bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result, Expected & expected)
 {
+    ParserKeyword s_prewhere(Keyword::PREWHERE);
     ParserKeyword s_where(Keyword::WHERE);
     ParserKeyword s_group(Keyword::GROUP);
     ParserKeyword s_by(Keyword::BY);
@@ -153,6 +174,13 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
     ParserKeyword s_limit(Keyword::LIMIT);
     ParserKeyword s_offset(Keyword::OFFSET);
     ParserKeyword s_qualify(Keyword::QUALIFY);
+
+    if (s_prewhere.ignore(pos, expected))
+    {
+        ParserExpressionOpsLite expr_p;
+        if (!expr_p.parse(pos, result.prewhere_expression, expected))
+            return false;
+    }
 
     if (s_where.ignore(pos, expected))
     {
@@ -200,6 +228,7 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
 
     if (s_limit.ignore(pos, expected))
     {
+        ParserToken comma(TokenType::Comma);
         String limit_value;
         if (!parseNumberToken(pos, limit_value))
             return false;
@@ -222,6 +251,20 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
 
         auto limit = make_intrusive<ASTLimitLite>();
         limit->limit = limit_value;
+
+        IParser::Pos comma_pos = pos;
+        if (comma.ignore(comma_pos, expected))
+        {
+            String second_value;
+            if (!parseNumberToken(comma_pos, second_value))
+                return false;
+            limit->offset_present = true;
+            limit->offset = limit_value;
+            limit->limit = second_value;
+            pos = comma_pos;
+            result.limit = limit;
+            return true;
+        }
 
         IParser::Pos offset_pos = pos;
         if (s_offset.ignore(offset_pos, expected))

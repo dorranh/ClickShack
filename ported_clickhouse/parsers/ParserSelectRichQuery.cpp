@@ -37,6 +37,12 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     ParserKeyword s_select(Keyword::SELECT);
     ParserKeyword s_distinct(Keyword::DISTINCT);
     ParserKeyword s_from(Keyword::FROM);
+    ParserKeyword s_final(Keyword::FINAL);
+    ParserKeyword s_sample(Keyword::SAMPLE);
+    ParserKeyword s_offset(Keyword::OFFSET);
+    ParserKeyword s_array(Keyword::ARRAY);
+    ParserKeyword s_join(Keyword::JOIN);
+    ParserKeyword s_left(Keyword::LEFT);
     ParserKeyword s_as(Keyword::AS);
 
     ASTPtr with_expressions;
@@ -86,11 +92,52 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         return false;
 
     ASTPtr source;
+    bool from_final = false;
+    ASTPtr sample_size;
+    ASTPtr sample_offset;
+    ASTPtr array_join_expressions;
+    bool array_join_is_left = false;
     if (s_from.ignore(pos, expected))
     {
         ParserTableSourceLite source_p;
         if (!source_p.parse(pos, source, expected))
             return false;
+
+        from_final = s_final.ignore(pos, expected);
+
+        if (s_sample.ignore(pos, expected))
+        {
+            ParserExpressionOpsLite expr_p;
+            if (!expr_p.parse(pos, sample_size, expected))
+                return false;
+
+            IParser::Pos offset_pos = pos;
+            if (s_offset.ignore(offset_pos, expected))
+            {
+                ASTPtr offset_expr;
+                if (!expr_p.parse(offset_pos, offset_expr, expected))
+                    return false;
+                sample_offset = offset_expr;
+                pos = offset_pos;
+            }
+        }
+
+        IParser::Pos array_pos = pos;
+        bool is_left = false;
+        if (s_left.ignore(array_pos, expected))
+            is_left = true;
+        if (s_array.ignore(array_pos, expected))
+        {
+            if (!s_join.ignore(array_pos, expected))
+                return false;
+            ParserExpressionListOpsLite expr_list_p;
+            ASTPtr exprs;
+            if (!expr_list_p.parse(array_pos, exprs, expected))
+                return false;
+            array_join_expressions = exprs;
+            array_join_is_left = is_left;
+            pos = array_pos;
+        }
     }
 
     SelectClausesLiteResult clauses;
@@ -104,6 +151,16 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     query->set(query->expressions, projections);
     if (source)
         query->set(query->from_source, source);
+    query->from_final = from_final;
+    if (sample_size)
+        query->set(query->sample_size, sample_size);
+    if (sample_offset)
+        query->set(query->sample_offset, sample_offset);
+    if (array_join_expressions)
+        query->set(query->array_join_expressions, array_join_expressions);
+    query->array_join_is_left = array_join_is_left;
+    if (clauses.prewhere_expression)
+        query->set(query->prewhere_expression, clauses.prewhere_expression);
     if (clauses.where_expression)
         query->set(query->where_expression, clauses.where_expression);
     if (clauses.group_by_expressions)
