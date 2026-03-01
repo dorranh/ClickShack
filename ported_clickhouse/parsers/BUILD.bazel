@@ -52,3 +52,29 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "parser_select_lite_stack",
+    srcs = [
+        "ASTExpressionList.cpp",
+        "ASTFunction.cpp",
+        "ASTLiteral.cpp",
+        "ExpressionLiteParsers.cpp",
+        "ParserSelectLiteQuery.cpp",
+    ],
+    hdrs = [
+        "ASTExpressionList.h",
+        "ASTFunction.h",
+        "ASTLiteral.h",
+        "ASTSelectLiteQuery.h",
+        "ExpressionLiteParsers.h",
+        "ParserSelectLiteQuery.h",
+    ],
+    deps = [
+        ":parser_use_stack",
+        "//ported_clickhouse/base:base_headers",
+        "//ported_clickhouse/common:error_codes",
+        "//ported_clickhouse/core:core_headers",
+    ],
+    visibility = ["//visibility:public"],
+)

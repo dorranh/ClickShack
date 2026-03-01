@@ -35,3 +35,12 @@ cc_binary(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_binary(
+    name = "select_lite_smoke",
+    srcs = ["select_lite_smoke.cc"],
+    deps = [
+        "//ported_clickhouse:parser_select_lite_stack",
+    ],
+    visibility = ["//visibility:public"],
+)

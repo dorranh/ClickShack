@@ -10,11 +10,18 @@ alias(
     visibility = ["//visibility:public"],
 )
 
+alias(
+    name = "parser_select_lite_stack",
+    actual = "//ported_clickhouse/parsers:parser_select_lite_stack",
+    visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "parser_lib",
     deps = [
         ":parser_core",
         ":parser_use_stack",
+        ":parser_select_lite_stack",
     ],
     visibility = ["//visibility:public"],
 )

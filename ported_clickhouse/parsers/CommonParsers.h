@@ -11,6 +11,7 @@ enum class Keyword : UInt8
 {
     USE,
     DATABASE,
+    SELECT,
 };
 
 std::string_view toStringView(Keyword type);
