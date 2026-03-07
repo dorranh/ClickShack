@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 01-build-baseline-recovery-02-PLAN.md
-last_updated: "2026-03-07T13:39:22Z"
-last_activity: 2026-03-07 — Completed plan 01-02 (Smoke and reproducibility proof)
+status: ready
+stopped_at: Completed phase 01-build-baseline-recovery
+last_updated: "2026-03-07T13:49:22.486Z"
+last_activity: 2026-03-07 — Completed Phase 01 (Build Baseline Recovery); next up Phase 02
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
   completed_plans: 2
-  percent: 100
+  percent: 20
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-07)
 
 **Core value:** Reliable parser-only extraction of ClickHouse SQL into a lightweight standalone Bazel C++ library that internal tooling can trust.
-**Current focus:** Phase 1 - Build Baseline Recovery
+**Current focus:** Phase 2 - Parser Workload Coverage
 
 ## Current Position
 
-Phase: 1 of 5 (Build Baseline Recovery)
-Plan: 2 of 2 in current phase
-Status: Verifying
-Last activity: 2026-03-07 — Completed plan 01-02 (Smoke and reproducibility proof)
+Phase: 2 of 5 (Parser Workload Coverage)
+Plan: 0 planned in current phase
+Status: Ready for planning
+Last activity: 2026-03-07 — Completed Phase 01 (Build Baseline Recovery)
 
-Progress: [██████████] 100%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -74,10 +74,10 @@ None.
 
 ### Blockers/Concerns
 
-None currently. Phase verification pending.
+None currently.
 
 ## Session Continuity
 
-Last session: 2026-03-07T13:39:22Z
-Stopped at: Completed 01-build-baseline-recovery-02-PLAN.md
+Last session: 2026-03-07T13:49:22Z
+Stopped at: Completed phase 01-build-baseline-recovery
 Resume file: None
