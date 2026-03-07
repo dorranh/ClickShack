@@ -19,8 +19,8 @@ created: 2026-03-07
 |----------|-------|
 | **Framework** | Bazel `cc_test`/`cc_binary` smoke executables |
 | **Config file** | `.bazelrc` |
-| **Quick run command** | `bazel --batch --output_user_root=/tmp/bazel-root test //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke` |
-| **Full suite command** | `bazel --batch --output_user_root=/tmp/bazel-root test //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke //examples/bootstrap:select_from_lite_smoke //examples/bootstrap:select_rich_smoke` |
+| **Quick run command** | `just smoke-quick` |
+| **Full suite command** | `just smoke-suite` |
 | **Estimated runtime** | ~90 seconds |
 
 ---
@@ -40,13 +40,28 @@ created: 2026-03-07
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 01-01-01 | 01 | 1 | BUILD-01 | build | `bazel --batch --output_user_root=/tmp/bazel-root build //ported_clickhouse:parser_lib` | ✅ | ⬜ pending |
 | 01-01-02 | 01 | 1 | BUILD-01 | clean-checkout build | `git worktree add /tmp/clickshack-phase01-clean HEAD && (cd /tmp/clickshack-phase01-clean && bazel --batch --output_user_root=/tmp/bazel-root-clean build //ported_clickhouse:parser_lib) && git worktree remove /tmp/clickshack-phase01-clean` | ✅ | ⬜ pending |
-| 01-02-01 | 02 | 2 | BUILD-02 | smoke | `bazel --batch --output_user_root=/tmp/bazel-root test //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke //examples/bootstrap:select_from_lite_smoke //examples/bootstrap:select_rich_smoke` | ✅ | ⬜ pending |
-| 01-02-02 | 02 | 2 | BUILD-02 | clean-checkout smoke | `git worktree add /tmp/clickshack-phase01-clean-smoke HEAD && (cd /tmp/clickshack-phase01-clean-smoke && bazel --batch --output_user_root=/tmp/bazel-root-clean-smoke test //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke //examples/bootstrap:select_from_lite_smoke //examples/bootstrap:select_rich_smoke) && git worktree remove /tmp/clickshack-phase01-clean-smoke` | ✅ | ⬜ pending |
-| 01-02-03 | 02 | 2 | BUILD-03 | tmp guard | `rg -n "(^|[\"' /])tmp/" MODULE.bazel MODULE.bazel.lock .bazelrc **/BUILD.bazel **/*.bzl` | ✅ | ⬜ pending |
-| 01-02-04 | 02 | 2 | BUILD-03 | tmp-absent execution | `git worktree add /tmp/clickshack-phase01-no-tmp HEAD && (cd /tmp/clickshack-phase01-no-tmp && rm -rf tmp && test ! -e tmp && bazel --batch --output_user_root=/tmp/bazel-root-no-tmp build //ported_clickhouse:parser_lib && bazel --batch --output_user_root=/tmp/bazel-root-no-tmp test //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke) && git worktree remove /tmp/clickshack-phase01-no-tmp` | ✅ | ⬜ pending |
-| 01-02-05 | 02 | 2 | BUILD-03 | tracked tmp count | `git ls-files tmp | wc -l` (expect `0`) | ✅ | ⬜ pending |
+| 01-02-01 | 02 | 2 | BUILD-02 | smoke | `just smoke-suite` plus runtime execution of all four `bazel-bin/examples/bootstrap/*_smoke` binaries | ✅ | ✅ green |
+| 01-02-02 | 02 | 2 | BUILD-02 | clean-checkout smoke | `git worktree add /tmp/clickshack-phase01-clean-smoke HEAD && (cd /tmp/clickshack-phase01-clean-smoke && PATH="$PWD/tools:$PATH" bazel --batch --output_user_root=/tmp/bazel-root-clean-smoke build --repo_env=CC=cc_no_lld.sh --repo_env=CXX=cc_no_lld.sh //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke //examples/bootstrap:select_from_lite_smoke //examples/bootstrap:select_rich_smoke && bazel-bin/examples/bootstrap/use_parser_smoke "USE mydb" && bazel-bin/examples/bootstrap/select_lite_smoke "SELECT a, 1, f(x)" && bazel-bin/examples/bootstrap/select_from_lite_smoke "SELECT a, 1, f(x) FROM mydb.mytable" && bazel-bin/examples/bootstrap/select_rich_smoke "SELECT a FROM t") && git worktree remove --force /tmp/clickshack-phase01-clean-smoke` | ✅ | ✅ green |
+| 01-02-03 | 02 | 2 | BUILD-03 | tmp guard | `./tools/check_tmp_boundary.sh` | ✅ | ✅ green |
+| 01-02-04 | 02 | 2 | BUILD-03 | tmp-absent execution | `git worktree add /tmp/clickshack-phase01-no-tmp HEAD && (cd /tmp/clickshack-phase01-no-tmp && rm -rf tmp && test ! -e tmp && PATH="$PWD/tools:$PATH" bazel --batch --output_user_root=/tmp/bazel-root-no-tmp build --repo_env=CC=cc_no_lld.sh --repo_env=CXX=cc_no_lld.sh //ported_clickhouse:parser_lib //examples/bootstrap:use_parser_smoke //examples/bootstrap:select_lite_smoke && bazel-bin/examples/bootstrap/use_parser_smoke "USE mydb" && bazel-bin/examples/bootstrap/select_lite_smoke "SELECT a, 1, f(x)") && git worktree remove --force /tmp/clickshack-phase01-no-tmp` | ✅ | ✅ green |
+| 01-02-05 | 02 | 2 | BUILD-03 | tracked tmp count | `git ls-files tmp | wc -l` (expect `0`) | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+
+## Execution Evidence
+
+### 2026-03-07
+
+| Check | Result |
+|-------|--------|
+| Workspace quick smoke | `just smoke-quick` completed successfully |
+| Workspace full smoke build | `just smoke-suite` completed successfully |
+| Workspace runtime smoke outputs | `use_parser_smoke -> mydb`; `select_lite_smoke -> expressions=3 first=identifier:a`; `select_from_lite_smoke -> expressions=3 table=mytable database=mydb first=identifier:a`; `select_rich_smoke -> projections=1 ... source_kinds=table ...` |
+| Clean-checkout full smoke proof | Fresh worktree at `/tmp/clickshack-phase01-clean-smoke` built all four smoke targets with `cc_no_lld.sh` repo env overrides and all four binaries exited `0` |
+| Tmp boundary guard | `./tools/check_tmp_boundary.sh` exited `0` with no tracked build/config `tmp/` references and no tracked `tmp/` files |
+| Tmp-absent proof | Fresh worktree at `/tmp/clickshack-phase01-no-tmp` removed `tmp/`, then built `//ported_clickhouse:parser_lib`, `use_parser_smoke`, and `select_lite_smoke`; both binaries exited `0` |
+| Parser lib regression | `PATH="$PWD/tools:$PATH" bazel --batch --output_user_root=/tmp/bazel-root build --repo_env=CC=cc_no_lld.sh --repo_env=CXX=cc_no_lld.sh //ported_clickhouse:parser_lib` was up to date and successful |
+| Tracked tmp count | `git ls-files tmp | wc -l` returned `0` |
 
 ---
 
