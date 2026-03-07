@@ -1,3 +1,5 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 alias(
     name = "parser_core",
     actual = "//ported_clickhouse/parsers:parser_core",
