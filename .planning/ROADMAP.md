@@ -26,7 +26,7 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
   1. Developer can build `//ported_clickhouse:parser_lib` on current system Bazel from a clean checkout.
   2. Developer can run smoke targets (`use`, `select_lite`, `select_from_lite`, `select_rich`) successfully with Bazel.
   3. Build/test flow works without requiring any tracked source from `tmp/`.
-**Plans**: TBD
+**Plans**: 2 (01-01, 01-02)
 
 ### Phase 2: Parser Workload Coverage
 **Goal**: Internal tooling can parse prioritized in-scope ClickHouse `SELECT` workload queries consistently.
@@ -72,7 +72,7 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Baseline Recovery | 0/TBD | Not started | - |
+| 1. Build Baseline Recovery | 1/2 | In Progress | - |
 | 2. Parser Workload Coverage | 0/TBD | Not started | - |
 | 3. AST to IR v1 Contract | 0/TBD | Not started | - |
 | 4. Diagnostics and Regression Guardrails | 0/TBD | Not started | - |

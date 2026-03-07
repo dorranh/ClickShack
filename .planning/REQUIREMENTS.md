@@ -7,9 +7,9 @@
 
 ### Build and Baseline
 
-- [ ] **BUILD-01**: Developer can build `//ported_clickhouse:parser_lib` successfully on current system Bazel version from a clean checkout.
+- [x] **BUILD-01**: Developer can build `//ported_clickhouse:parser_lib` successfully on current system Bazel version from a clean checkout.
 - [ ] **BUILD-02**: Developer can run parser smoke targets (`use`, `select_lite`, `select_from_lite`, `select_rich`) successfully via Bazel.
-- [ ] **BUILD-03**: Build/test flow is reproducible without requiring any tracked source from `tmp/`.
+- [x] **BUILD-03**: Build/test flow is reproducible without requiring any tracked source from `tmp/`.
 
 ### Parser Behavior
 
@@ -56,9 +56,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUILD-01 | Phase 1 | Pending |
+| BUILD-01 | Phase 1 | Complete |
 | BUILD-02 | Phase 1 | Pending |
-| BUILD-03 | Phase 1 | Pending |
+| BUILD-03 | Phase 1 | Complete |
 | PARS-01 | Phase 2 | Pending |
 | PARS-02 | Phase 2 | Pending |
 | PARS-03 | Phase 2 | Pending |
