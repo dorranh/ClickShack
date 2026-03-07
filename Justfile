@@ -16,6 +16,14 @@ build-main: build
 build-all:
     {{bazel}} build {{all_targets}}
 
+# Run the quick parser smoke subset (fast feedback).
+smoke-quick:
+    ./tools/parser_smoke_suite.sh quick
+
+# Run the deterministic parser smoke suite (quick subset first, full suite second).
+smoke-suite:
+    ./tools/parser_smoke_suite.sh suite
+
 # Build the imported ClickHouse parser core subset.
 build-parser-core:
     {{bazel}} build //ported_clickhouse:parser_core
