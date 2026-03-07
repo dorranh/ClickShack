@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-build-baseline-recovery-01-PLAN.md
-last_updated: "2026-03-07T13:01:42.127Z"
-last_activity: 2026-03-07 — Completed plan 01-01 (Bazel 9 baseline unblockers)
+status: verifying
+stopped_at: Completed 01-build-baseline-recovery-02-PLAN.md
+last_updated: "2026-03-07T13:39:22Z"
+last_activity: 2026-03-07 — Completed plan 01-02 (Smoke and reproducibility proof)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -26,31 +26,32 @@ See: .planning/PROJECT.md (updated 2026-03-07)
 ## Current Position
 
 Phase: 1 of 5 (Build Baseline Recovery)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-03-07 — Completed plan 01-01 (Bazel 9 baseline unblockers)
+Plan: 2 of 2 in current phase
+Status: Verifying
+Last activity: 2026-03-07 — Completed plan 01-02 (Smoke and reproducibility proof)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: 5 min
-- Total execution time: 0.1 hours
+- Total plans completed: 2
+- Average duration: 10 min
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-build-baseline-recovery | 1 | 5 min | 5 min |
+| 01-build-baseline-recovery | 2 | 20 min | 10 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min
+- Last 5 plans: 5 min, 15 min
 - Trend: Stable
 
 *Updated after each plan completion*
 | Phase 01-build-baseline-recovery P01 | 5min | 4 tasks | 7 files |
+| Phase 01-build-baseline-recovery P02 | 15min | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -64,17 +65,19 @@ Recent decisions affecting current work:
 - Python sqlglot transpilation remains deferred out of this milestone.
 - [Phase 01-build-baseline-recovery]: Kept compiler wrapper usage opt-in via build:sanitize_wrapper instead of default CC/CXX repo_env defaults.
 - [Phase 01-build-baseline-recovery]: Auto-fixed missing rules_cc load in ported_clickhouse/core/BUILD.bazel after Task 4 verification failure.
+- [Phase 01-build-baseline-recovery]: Used a PATH-resolved CC/CXX shim to suppress broken rules_cc lld detection during fresh macOS toolchain configuration.
+- [Phase 01-build-baseline-recovery]: Treated smoke acceptance as build plus binary execution because the smoke targets are `cc_binary` executables rather than `cc_test` rules.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None currently. Phase verification pending.
 
 ## Session Continuity
 
-Last session: 2026-03-07T13:01:42.125Z
-Stopped at: Completed 01-build-baseline-recovery-01-PLAN.md
+Last session: 2026-03-07T13:39:22Z
+Stopped at: Completed 01-build-baseline-recovery-02-PLAN.md
 Resume file: None

@@ -72,7 +72,7 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Baseline Recovery | 1/2 | In Progress | - |
+| 1. Build Baseline Recovery | 2/2 | Complete | - |
 | 2. Parser Workload Coverage | 0/TBD | Not started | - |
 | 3. AST to IR v1 Contract | 0/TBD | Not started | - |
 | 4. Diagnostics and Regression Guardrails | 0/TBD | Not started | - |
