@@ -56,27 +56,27 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUILD-01 | Phase TBD | Pending |
-| BUILD-02 | Phase TBD | Pending |
-| BUILD-03 | Phase TBD | Pending |
-| PARS-01 | Phase TBD | Pending |
-| PARS-02 | Phase TBD | Pending |
-| PARS-03 | Phase TBD | Pending |
-| IR-01 | Phase TBD | Pending |
-| IR-02 | Phase TBD | Pending |
-| IR-03 | Phase TBD | Pending |
-| DIAG-01 | Phase TBD | Pending |
-| DIAG-02 | Phase TBD | Pending |
-| DIAG-03 | Phase TBD | Pending |
-| DEPS-01 | Phase TBD | Pending |
-| DEPS-02 | Phase TBD | Pending |
-| DEPS-03 | Phase TBD | Pending |
+| BUILD-01 | Phase 1 | Pending |
+| BUILD-02 | Phase 1 | Pending |
+| BUILD-03 | Phase 1 | Pending |
+| PARS-01 | Phase 2 | Pending |
+| PARS-02 | Phase 2 | Pending |
+| PARS-03 | Phase 2 | Pending |
+| IR-01 | Phase 3 | Pending |
+| IR-02 | Phase 3 | Pending |
+| IR-03 | Phase 3 | Pending |
+| DIAG-01 | Phase 4 | Pending |
+| DIAG-02 | Phase 4 | Pending |
+| DIAG-03 | Phase 4 | Pending |
+| DEPS-01 | Phase 5 | Pending |
+| DEPS-02 | Phase 5 | Pending |
+| DEPS-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15
+- Unmapped: 0 ✅
 
 ---
 *Requirements defined: 2026-03-07*
-*Last updated: 2026-03-07 after initial definition*
+*Last updated: 2026-03-07 after roadmap phase mapping*
