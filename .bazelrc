@@ -1,3 +1,5 @@
 common --enable_bzlmod
-common --repo_env=CC=/Users/dorran/dev/clickhouse-patching/clickshack/tools/clang_sanitize_fuse_ld.sh
-common --repo_env=CXX=/Users/dorran/dev/clickhouse-patching/clickshack/tools/clang_sanitize_fuse_ld.sh
+
+# Optional opt-in wrapper for sanitizer experiments.
+build:sanitize_wrapper --repo_env=CC=./tools/clang_sanitize_fuse_ld.sh
+build:sanitize_wrapper --repo_env=CXX=./tools/clang_sanitize_fuse_ld.sh
