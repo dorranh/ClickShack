@@ -211,7 +211,7 @@ For each excluded fixture:
 - failure classification should be stable enough to show it remains out of scope
 
 ### Layer 3. Determinism Repetition Check
-For a representative subset of supported workload fixtures, run the same fixture multiple times in one command and assert identical canonical output.
+For every supported workload fixture, run the same fixture multiple times in one command and assert identical canonical output.
 This satisfies `PARS-01` without requiring a versioned IR yet.
 
 Recommended implementation:

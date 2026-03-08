@@ -36,7 +36,7 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
   1. Running the same supported workload query repeatedly yields the same parse output.
   2. Required in-scope SQL constructs for the current internal workload parse successfully.
   3. Unsupported non-SQL and MSSQL branches are explicitly documented and remain excluded from parser scope.
-**Plans**: TBD
+**Plans**: 3 (02-01, 02-02, 02-03)
 
 ### Phase 3: AST to IR v1 Contract
 **Goal**: Consumers receive a deterministic, versioned parser IR v1 contract generated from parser AST without analyzer semantics.
@@ -73,7 +73,7 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Build Baseline Recovery | 2/2 | Complete | 2026-03-07 |
-| 2. Parser Workload Coverage | 0/TBD | Not started | - |
+| 2. Parser Workload Coverage | 0/3 | Planned | - |
 | 3. AST to IR v1 Contract | 0/TBD | Not started | - |
 | 4. Diagnostics and Regression Guardrails | 0/TBD | Not started | - |
 | 5. Dependency and Provenance Hardening | 0/TBD | Not started | - |
