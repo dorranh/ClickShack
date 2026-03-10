@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 02-parser-workload-coverage-03-PLAN.md
-last_updated: "2026-03-10T15:35:59.805Z"
+status: planning
+stopped_at: Phase 02.1 context gathered
+last_updated: "2026-03-10T16:04:08.266Z"
 last_activity: 2026-03-10 — Completed Phase 02 Plan 03 (Exclusions, Scope Documentation, and Final Acceptance Proof)
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 2
   total_plans: 5
   completed_plans: 5
@@ -81,6 +81,10 @@ Recent decisions affecting current work:
 - [Phase 02-parser-workload-coverage]: Added audit-docs checks in parser_workload_suite.sh to enforce docs-to-fixture consistency.
 - [Phase 02-parser-workload-coverage]: Defaulted full/reconcile sign-off inputs so plan verification commands run as written.
 
+### Roadmap Evolution
+
+- Phase 02.1 inserted after Phase 2: Select language feature completeness (URGENT)
+
 ### Pending Todos
 
 None.
@@ -91,6 +95,6 @@ None currently.
 
 ## Session Continuity
 
-Last session: 2026-03-10T15:35:59.803Z
-Stopped at: Completed 02-parser-workload-coverage-03-PLAN.md
-Resume file: None
+Last session: 2026-03-10T16:04:08.256Z
+Stopped at: Phase 02.1 context gathered
+Resume file: .planning/phases/02.1-select-language-feature-completeness/02.1-CONTEXT.md
