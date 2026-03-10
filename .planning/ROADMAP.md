@@ -38,6 +38,16 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
   3. Unsupported non-SQL and MSSQL branches are explicitly documented and remain excluded from parser scope.
 **Plans**: 3 (02-01, 02-02, 02-03)
 
+### Phase 02.1: Select language feature completeness (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 2
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 02.1 to break down)
+
 ### Phase 3: AST to IR v1 Contract
 **Goal**: Consumers receive a deterministic, versioned parser IR v1 contract generated from parser AST without analyzer semantics.
 **Depends on**: Phase 2

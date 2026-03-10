@@ -77,7 +77,12 @@ bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         {
             ++pos;
             if (isKeyword(pos, "FIRST") || isKeyword(pos, "LAST"))
+            {
+                elem->nulls_order = isKeyword(pos, "FIRST")
+                    ? ASTOrderByElementLite::NullsOrder::First
+                    : ASTOrderByElementLite::NullsOrder::Last;
                 ++pos;
+            }
             else
                 return false;
         }
@@ -89,6 +94,10 @@ bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
             ASTPtr collate_name;
             if (!identifier_p.parse(pos, collate_name, expected))
                 return false;
+            if (const auto * id = collate_name ? collate_name->as<ASTIdentifier>() : nullptr)
+                elem->collate_name = id->name();
+            else
+                return false;
         }
 
         // Parser-only acceptance for WITH FILL [FROM expr] [TO expr] [STEP expr] [STALENESS expr].
@@ -97,27 +106,35 @@ bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         {
             if (!s_fill.ignore(fill_pos, expected))
                 return false;
+            elem->with_fill = true;
 
-            ASTPtr ignored;
             if (s_from.ignore(fill_pos, expected))
             {
-                if (!expr_p.parse(fill_pos, ignored, expected))
+                ASTPtr fill_from;
+                if (!expr_p.parse(fill_pos, fill_from, expected))
                     return false;
+                elem->set(elem->fill_from, fill_from);
             }
             if (s_to.ignore(fill_pos, expected))
             {
-                if (!expr_p.parse(fill_pos, ignored, expected))
+                ASTPtr fill_to;
+                if (!expr_p.parse(fill_pos, fill_to, expected))
                     return false;
+                elem->set(elem->fill_to, fill_to);
             }
             if (s_step.ignore(fill_pos, expected))
             {
-                if (!expr_p.parse(fill_pos, ignored, expected))
+                ASTPtr fill_step;
+                if (!expr_p.parse(fill_pos, fill_step, expected))
                     return false;
+                elem->set(elem->fill_step, fill_step);
             }
             if (s_staleness.ignore(fill_pos, expected))
             {
-                if (!expr_p.parse(fill_pos, ignored, expected))
+                ASTPtr fill_staleness;
+                if (!expr_p.parse(fill_pos, fill_staleness, expected))
                     return false;
+                elem->set(elem->fill_staleness, fill_staleness);
             }
 
             pos = fill_pos;
@@ -127,21 +144,25 @@ bool parseOrderByList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         IParser::Pos interp_pos = pos;
         if (s_interpolate.ignore(interp_pos, expected))
         {
+            elem->interpolate = true;
             if (open.ignore(interp_pos, expected))
             {
                 if (!close.ignore(interp_pos, expected))
                 {
+                    auto exprs = make_intrusive<ASTExpressionList>();
                     while (true)
                     {
-                        ASTPtr ignored;
-                        if (!expr_p.parse(interp_pos, ignored, expected))
+                        ASTPtr interp_expr;
+                        if (!expr_p.parse(interp_pos, interp_expr, expected))
                             return false;
+                        exprs->children.push_back(interp_expr);
                         ParserToken comma2(TokenType::Comma);
                         if (!comma2.ignore(interp_pos, expected))
                             break;
                     }
                     if (!close.ignore(interp_pos, expected))
                         return false;
+                    elem->set(elem->interpolate_expressions, exprs);
                 }
             }
             pos = interp_pos;

@@ -14,7 +14,13 @@ class ASTSelectRichQuery : public IAST
 {
 public:
     ASTExpressionList * with_expressions = nullptr;
+    bool with_recursive = false;
     bool distinct = false;
+    bool select_all = false;
+    ASTExpressionList * distinct_on_expressions = nullptr;
+    bool top_present = false;
+    String top_count;
+    bool top_with_ties = false;
     ASTExpressionList * expressions = nullptr;
     IAST * from_source = nullptr;
     bool from_final = false;
@@ -47,9 +53,16 @@ public:
     ASTPtr clone() const override
     {
         auto res = make_intrusive<ASTSelectRichQuery>();
+        res->with_recursive = with_recursive;
         res->distinct = distinct;
+        res->select_all = select_all;
+        res->top_present = top_present;
+        res->top_count = top_count;
+        res->top_with_ties = top_with_ties;
         if (with_expressions)
             res->set(res->with_expressions, with_expressions->clone());
+        if (distinct_on_expressions)
+            res->set(res->distinct_on_expressions, distinct_on_expressions->clone());
         if (expressions)
             res->set(res->expressions, expressions->clone());
         if (from_source)

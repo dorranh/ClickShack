@@ -133,6 +133,8 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     ParserKeyword s_select(Keyword::SELECT);
     ParserKeyword s_distinct(Keyword::DISTINCT);
     ParserKeyword s_all(Keyword::ALL);
+    ParserKeyword s_on(Keyword::ON);
+    ParserKeyword s_ties(Keyword::TIES);
     ParserKeyword s_from(Keyword::FROM);
     ParserKeyword s_final(Keyword::FINAL);
     ParserKeyword s_sample(Keyword::SAMPLE);
@@ -143,9 +145,10 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     ParserKeyword s_as(Keyword::AS);
 
     ASTPtr with_expressions;
+    bool with_recursive = false;
     if (s_with.ignore(pos, expected))
     {
-        s_recursive.ignore(pos, expected);
+        with_recursive = s_recursive.ignore(pos, expected);
         ParserToken comma(TokenType::Comma);
 
         auto list = make_intrusive<ASTExpressionList>();
@@ -165,8 +168,50 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         return false;
 
     bool distinct = s_distinct.ignore(pos, expected);
+    bool select_all = false;
+    ASTPtr distinct_on_expressions;
     if (!distinct)
-        s_all.ignore(pos, expected);
+    {
+        select_all = s_all.ignore(pos, expected);
+    }
+    else
+    {
+        IParser::Pos on_pos = pos;
+        if (s_on.ignore(on_pos, expected))
+        {
+            ParserExpressionListOpsLite expr_list_p;
+            ASTPtr exprs;
+            if (!expr_list_p.parse(on_pos, exprs, expected))
+                return false;
+            distinct_on_expressions = exprs;
+            pos = on_pos;
+        }
+    }
+
+    bool top_present = false;
+    String top_count;
+    bool top_with_ties = false;
+    IParser::Pos top_pos = pos;
+    if (isKeyword(top_pos, "TOP"))
+    {
+        ++top_pos;
+        if (top_pos->type != TokenType::Number)
+            return false;
+        top_count.assign(top_pos->begin, top_pos->end);
+        ++top_pos;
+
+        IParser::Pos ties_pos = top_pos;
+        if (s_with.ignore(ties_pos, expected))
+        {
+            if (!s_ties.ignore(ties_pos, expected))
+                return false;
+            top_with_ties = true;
+            top_pos = ties_pos;
+        }
+
+        top_present = true;
+        pos = top_pos;
+    }
 
     ParserProjectionListOpsLite projection_p;
     ASTPtr projections;
@@ -227,9 +272,16 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         return false;
 
     auto query = make_intrusive<ASTSelectRichQuery>();
+    query->with_recursive = with_recursive;
     query->distinct = distinct;
+    query->select_all = select_all;
+    query->top_present = top_present;
+    query->top_count = top_count;
+    query->top_with_ties = top_with_ties;
     if (with_expressions)
         query->set(query->with_expressions, with_expressions);
+    if (distinct_on_expressions)
+        query->set(query->distinct_on_expressions, distinct_on_expressions);
     query->set(query->expressions, projections);
     if (source)
         query->set(query->from_source, source);
