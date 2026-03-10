@@ -43,10 +43,10 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 2
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 02.1 to break down)
+- [x] TBD (run /gsd:plan-phase 02.1 to break down) (completed 2026-03-10)
 
 ### Phase 3: AST to IR v1 Contract
 **Goal**: Consumers receive a deterministic, versioned parser IR v1 contract generated from parser AST without analyzer semantics.
@@ -84,7 +84,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Build Baseline Recovery | 2/2 | Complete | 2026-03-07 |
 | 2. Parser Workload Coverage | 3/3 | Complete | 2026-03-10 |
-| 2.1. Select language feature completeness | 2/3 | In Progress | - |
+| 2.1. Select language feature completeness | 3/3 | Complete | 2026-03-10 |
 | 3. AST to IR v1 Contract | 0/TBD | Not started | - |
 | 4. Diagnostics and Regression Guardrails | 0/TBD | Not started | - |
 | 5. Dependency and Provenance Hardening | 0/TBD | Not started | - |
