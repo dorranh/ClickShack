@@ -177,30 +177,22 @@ PY
 }
 
 audit_docs() {
-  python3 - "${manifest}" "${scope_doc}" "${roadmap_doc}" "${validation_doc}" "${signoff}" <<'PY'
+  python3 - "${manifest}" "${scope_doc}" "${roadmap_doc}" "${validation_doc}" "${signoff}" "${source}" <<'PY'
 import json
 import os
 import re
 import sys
 
-manifest_path, scope_doc, roadmap_doc, validation_doc, signoff_path = sys.argv[1:]
+manifest_path, scope_doc, roadmap_doc, validation_doc, signoff_path, source_doc = sys.argv[1:]
 
-if not scope_doc:
-    raise SystemExit("--scope-doc is required for audit-docs")
-if not os.path.isfile(scope_doc):
-    raise SystemExit(f"scope doc not found: {scope_doc}")
+if not any([scope_doc, roadmap_doc, validation_doc, signoff_path, source_doc]):
+    raise SystemExit("audit-docs requires at least one doc input flag")
 
 with open(manifest_path, encoding="utf-8") as f:
     fixtures = json.load(f)["fixtures"]
-with open(scope_doc, encoding="utf-8") as f:
-    scope_text = f.read()
 
 supported = [f for f in fixtures if f.get("expected_result_kind") == "success"]
 excluded = [f for f in fixtures if f.get("expected_result_kind") == "excluded"]
-
-scope_lower = scope_text.lower()
-if "supported" not in scope_lower or "excluded" not in scope_lower:
-    raise SystemExit("scope doc must include supported and excluded sections")
 
 required_exclusion_tags = {"non_sql", "non_select", "mssql", "query_parameter"}
 manifest_tags = {tag for f in excluded for tag in f.get("clause_tags", [])}
@@ -208,15 +200,35 @@ missing_tags = sorted(tag for tag in required_exclusion_tags if tag not in manif
 if missing_tags:
     raise SystemExit(f"manifest excluded coverage missing required tags: {missing_tags}")
 
-required_scope_terms = [
-    "non-sql",
-    "non-select",
-    "mssql",
-    "query-parameter",
-]
-for term in required_scope_terms:
-    if term not in scope_lower:
-        raise SystemExit(f"scope doc missing exclusion term: {term}")
+if scope_doc:
+    if not os.path.isfile(scope_doc):
+        raise SystemExit(f"scope doc not found: {scope_doc}")
+    with open(scope_doc, encoding="utf-8") as f:
+        scope_text = f.read()
+    scope_lower = scope_text.lower()
+    if "supported" not in scope_lower or "excluded" not in scope_lower:
+        raise SystemExit("scope doc must include supported and excluded sections")
+
+    required_scope_terms = [
+        "non-sql",
+        "non-select",
+        "mssql",
+        "query-parameter",
+    ]
+    for term in required_scope_terms:
+        if term not in scope_lower:
+            raise SystemExit(f"scope doc missing exclusion term: {term}")
+
+if source_doc:
+    if not os.path.isfile(source_doc):
+        raise SystemExit(f"source doc not found: {source_doc}")
+    with open(source_doc, encoding="utf-8") as f:
+        source_text = f.read()
+    if "Coverage Conclusion" not in source_text:
+        raise SystemExit("source doc missing Coverage Conclusion section")
+    source_lower = source_text.lower()
+    if "supported" not in source_lower and "excluded" not in source_lower:
+        raise SystemExit("source doc must describe supported/excluded outcomes")
 
 if roadmap_doc:
     if not os.path.isfile(roadmap_doc):
@@ -256,7 +268,7 @@ if signoff_path:
 print(
     "audit-docs ok: "
     f"supported={len(supported)} excluded={len(excluded)} "
-    f"scope={scope_doc}"
+    f"scope={scope_doc or 'n/a'} source={source_doc or 'n/a'}"
 )
 PY
 }
