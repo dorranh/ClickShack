@@ -64,3 +64,12 @@ cc_binary(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_binary(
+    name = "parser_workload_summary",
+    srcs = ["parser_workload_summary.cc"],
+    deps = [
+        "//ported_clickhouse:parser_select_rich_stack",
+    ],
+    visibility = ["//visibility:public"],
+)
