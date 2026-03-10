@@ -103,6 +103,10 @@ created: 2026-03-07
 6. `bazel --batch --output_user_root=/tmp/bazel-root build //ported_clickhouse:parser_lib`
 - Result: build succeeded.
 
+7. `bash tools/parser_workload_suite.sh audit-docs --manifest testdata/parser_workload/manifest.json --scope-doc docs/parser_workload_scope.md --validation-doc .planning/phases/02-parser-workload-coverage/02-VALIDATION.md --signoff docs/parser_workload_reconciliation.md`
+- Result: `audit-docs ok: supported=7 excluded=6 scope=docs/parser_workload_scope.md`
+- Notes: Final consistency proof that fixtures, scope docs, validation evidence, and sign-off remain synchronized.
+
 ### Acceptance Status
 
 - Full Phase 02 suite command set is reproducible and green in one run.
