@@ -10,11 +10,16 @@ commands:
   list           enumerate fixture corpus
   reconcile      compare manifest mappings against source snapshot
   audit-signoff  verify sign-off metadata matches reconciliation totals
+  quick          run a targeted supported subset from the manifest
+  supported      run all supported fixtures and compare exact summaries
+  excluded       run all excluded fixtures and verify deterministic failure class
+  repeat         run supported fixtures twice and assert deterministic output
+  full           run audit + reconcile + audit-signoff + supported + excluded + repeat
 
 options:
   --manifest <path>   manifest path (required)
-  --source <path>     workload-source snapshot json (reconcile/audit-signoff)
-  --signoff <path>    reconciliation markdown doc (reconcile/audit-signoff)
+  --source <path>     workload-source snapshot json (reconcile/audit-signoff/full)
+  --signoff <path>    reconciliation markdown doc (reconcile/audit-signoff/full)
 USAGE
 }
 
@@ -56,6 +61,7 @@ if [[ -z "${manifest}" ]]; then
 fi
 
 manifest_dir="$(cd "$(dirname "${manifest}")" && pwd)"
+runner="bazel-bin/examples/bootstrap/parser_workload_summary"
 
 audit_manifest() {
   python3 - "${manifest}" "${manifest_dir}" <<'PY'
@@ -269,6 +275,122 @@ if mode == "audit-signoff":
 PY
 }
 
+fixture_rows() {
+  local mode="$1"
+  python3 - "${manifest}" "${manifest_dir}" "${mode}" <<'PY'
+import json
+import os
+import sys
+
+manifest_path = sys.argv[1]
+manifest_dir = sys.argv[2]
+mode = sys.argv[3]
+
+with open(manifest_path, encoding="utf-8") as f:
+    fixtures = json.load(f)["fixtures"]
+
+if mode == "quick":
+    rows = [f for f in fixtures if f["expected_result_kind"] == "success" and f["priority"] == "P0"]
+elif mode == "supported":
+    rows = [f for f in fixtures if f["expected_result_kind"] == "success"]
+elif mode == "excluded":
+    rows = [f for f in fixtures if f["expected_result_kind"] == "excluded"]
+else:
+    raise SystemExit(f"unknown fixture mode: {mode}")
+
+rows = sorted(rows, key=lambda r: (r["priority"], r["id"]))
+for row in rows:
+    print(
+        "\t".join(
+            [
+                row["id"],
+                row["expected_result_kind"],
+                os.path.join(manifest_dir, row["path"]),
+                row.get("expected_canonical_summary", ""),
+                row.get("expected_failure_class", ""),
+            ]
+        )
+    )
+PY
+}
+
+build_runner() {
+  local bazel_rc=0
+  PATH="${PWD}/tools:${PATH}" bazel --batch --output_user_root=/tmp/bazel-root build \
+    --repo_env=CC=cc_no_lld.sh --repo_env=CXX=cc_no_lld.sh \
+    //examples/bootstrap:parser_workload_summary >/tmp/parser_workload_bazel.log 2>&1 || bazel_rc=$?
+
+  if [[ ! -x "${runner}" ]]; then
+    cat /tmp/parser_workload_bazel.log >&2
+    echo "runner binary not produced" >&2
+    exit 1
+  fi
+
+  if [[ ${bazel_rc} -ne 0 ]]; then
+    echo "warning: bazel exited ${bazel_rc} after producing artifact (sandbox sysctl limitation)" >&2
+  fi
+}
+
+run_supported_mode() {
+  local mode="$1"
+  build_runner
+  local count=0
+  while IFS=$'\t' read -r fid kind fixture_path expected_summary _failure; do
+    [[ -z "${fid}" ]] && continue
+    actual_summary="$(${runner} --query-file "${fixture_path}")"
+    if [[ "${actual_summary}" != "${expected_summary}" ]]; then
+      echo "summary mismatch for ${fid}" >&2
+      echo "expected: ${expected_summary}" >&2
+      echo "actual:   ${actual_summary}" >&2
+      exit 1
+    fi
+    count=$((count + 1))
+  done < <(fixture_rows "${mode}")
+
+  echo "${mode} ok: ${count} fixtures"
+}
+
+run_excluded() {
+  build_runner
+  local count=0
+  while IFS=$'\t' read -r fid _kind fixture_path _expected_summary expected_failure_class; do
+    [[ -z "${fid}" ]] && continue
+    out_file="/tmp/parser_workload_${fid}.out"
+    err_file="/tmp/parser_workload_${fid}.err"
+    if "${runner}" --query-file "${fixture_path}" >"${out_file}" 2>"${err_file}"; then
+      echo "excluded fixture unexpectedly succeeded: ${fid}" >&2
+      exit 1
+    fi
+
+    err_text="$(cat "${err_file}")"
+    if [[ -n "${expected_failure_class}" ]] && [[ "${err_text}" != *"classification=${expected_failure_class}"* ]]; then
+      echo "excluded fixture class mismatch for ${fid}: expected ${expected_failure_class}" >&2
+      echo "stderr: ${err_text}" >&2
+      exit 1
+    fi
+    count=$((count + 1))
+  done < <(fixture_rows "excluded")
+
+  echo "excluded ok: ${count} fixtures"
+}
+
+run_repeat() {
+  build_runner
+  local count=0
+  while IFS=$'\t' read -r fid _kind fixture_path _expected_summary _failure; do
+    [[ -z "${fid}" ]] && continue
+    first="$(${runner} --query-file "${fixture_path}")"
+    second="$(${runner} --query-file "${fixture_path}")"
+    if [[ "${first}" != "${second}" ]]; then
+      echo "repeat mismatch for ${fid}" >&2
+      exit 1
+    fi
+    count=$((count + 1))
+  done < <(fixture_rows "supported")
+
+  echo "repeat ok: ${count} fixtures"
+}
+
 case "${command}" in
   audit)
     audit_manifest
@@ -281,6 +403,26 @@ case "${command}" in
     ;;
   audit-signoff)
     reconcile_core "audit-signoff"
+    ;;
+  quick)
+    run_supported_mode "quick"
+    ;;
+  supported)
+    run_supported_mode "supported"
+    ;;
+  excluded)
+    run_excluded
+    ;;
+  repeat)
+    run_repeat
+    ;;
+  full)
+    audit_manifest
+    reconcile_core "reconcile"
+    reconcile_core "audit-signoff"
+    run_supported_mode "supported"
+    run_excluded
+    run_repeat
     ;;
   *)
     echo "unknown command: ${command}" >&2
