@@ -280,6 +280,14 @@ PY
 reconcile_core() {
   local mode="$1"
   apply_default_reconcile_inputs
+  if [[ -n "${source}" && -f "${source}" ]]; then
+    if ! head -c 1 "${source}" | grep -q "[{[]"; then
+      if [[ -f "${default_source}" ]]; then
+        echo "warning: --source is not JSON, falling back to ${default_source}" >&2
+        source="${default_source}"
+      fi
+    fi
+  fi
   if [[ -z "${source}" || -z "${signoff}" ]]; then
     echo "--source and --signoff are required for ${mode}" >&2
     exit 2

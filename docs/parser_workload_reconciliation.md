@@ -14,15 +14,15 @@
 - Included entries: `7`
 - Excluded entries: `4`
 - Deferred entries: `1`
-- Supported fixtures: `7`
-- Excluded fixtures: `6`
+- Supported fixtures: `19`
+- Excluded fixtures: `7`
 - Missing source mappings: `none`
-- Extra fixture mappings: `EX-001`
+- Extra fixture mappings: `EX-001, EX-W2-001..EX-W2-007, IW-013..IW-018`
 
 ## Mapping Notes
 
 - All `IW-001` through `IW-012` source identifiers map to exactly one manifest fixture.
-- Supplemental exclusion fixture `EX-001` is intentionally manifest-only to keep explicit non-SQL rejection under regression coverage.
+- Supplemental exclusions and wave-2 coverage fixtures (`EX-001`, `EX-W2-001..EX-W2-007`, `IW-013..IW-018`) are intentionally manifest-only to keep explicit unsupported policies and phase-02.1 fidelity regressions under deterministic coverage.
 - Deferred source item `IW-012` is intentionally represented as an excluded fixture to preserve explicit scope boundaries in Phase 02.
 - Excluded workload classes (non-SELECT and MSSQL-specific forms) remain covered with deterministic failure fixtures.
 
@@ -41,8 +41,8 @@ mapped_total: 12
 included_total: 7
 excluded_total: 4
 deferred_total: 1
-supported_fixtures: 7
-excluded_fixtures: 6
+supported_fixtures: 19
+excluded_fixtures: 7
 missing_source_ids: []
-extra_manifest_ids: ['EX-001']
+extra_manifest_ids: ['EX-001', 'EX-W2-001', 'EX-W2-002', 'EX-W2-003', 'EX-W2-004', 'EX-W2-005', 'EX-W2-006', 'EX-W2-007', 'IW-013', 'IW-014', 'IW-015', 'IW-016', 'IW-017', 'IW-018']
 ```
