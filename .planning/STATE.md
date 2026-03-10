@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 02.1 context gathered
-last_updated: "2026-03-10T16:04:08.266Z"
-last_activity: 2026-03-10 — Completed Phase 02 Plan 03 (Exclusions, Scope Documentation, and Final Acceptance Proof)
+status: executing
+stopped_at: Completed 02.1-select-language-feature-completeness-01-PLAN.md
+last_updated: "2026-03-10T16:27:26.321Z"
+last_activity: 2026-03-10 — Completed Phase 02.1 Plan 01 (SELECT Head, JOIN, and AST Contract Retention)
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_plans: 8
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-07)
 
 **Core value:** Reliable parser-only extraction of ClickHouse SQL into a lightweight standalone Bazel C++ library that internal tooling can trust.
-**Current focus:** Phase 3 - AST to IR v1 Contract
+**Current focus:** Phase 02.1 - Select language feature completeness
 
 ## Current Position
 
-Phase: 3 of 5 (AST to IR v1 Contract)
-Plan: 0 of TBD completed in current phase
-Status: Ready for planning/execution of Phase 03
-Last activity: 2026-03-10 — Completed Phase 02 Plan 03 (Exclusions, Scope Documentation, and Final Acceptance Proof)
+Phase: 02.1 of 6 (Select language feature completeness)
+Plan: 1 of 3 completed in current phase
+Status: In progress
+Last activity: 2026-03-10 — Completed Phase 02.1 Plan 01 (SELECT Head, JOIN, and AST Contract Retention)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | Phase 02-parser-workload-coverage P01 | 11min | 5 tasks | 19 files |
 | Phase 02-parser-workload-coverage P02 | 10 min | 4 tasks | 4 files |
 | Phase 02-parser-workload-coverage P03 | 5min | 4 tasks | 7 files |
+| Phase 02.1-select-language-feature-completeness P01 | 22min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Recent decisions affecting current work:
 - [Phase 02-parser-workload-coverage]: Kept non-SQL exclusion explicit with a supplemental manifest-only fixture id (EX-001).
 - [Phase 02-parser-workload-coverage]: Added audit-docs checks in parser_workload_suite.sh to enforce docs-to-fixture consistency.
 - [Phase 02-parser-workload-coverage]: Defaulted full/reconcile sign-off inputs so plan verification commands run as written.
+- [Phase 02.1-select-language-feature-completeness]: Retained SELECT-head and ORDER modifiers in AST instead of parse-only acceptance.
+- [Phase 02.1-select-language-feature-completeness]: Extended JOIN retention with LOCAL locality and PASTE join type surfaced by canonical summaries.
+- [Phase 02.1-select-language-feature-completeness]: Preserved explicit exclusion classes by keeping MSSQL exclusion fixture deterministic while adding supported TOP coverage.
 
 ### Roadmap Evolution
 
@@ -95,6 +99,6 @@ None currently.
 
 ## Session Continuity
 
-Last session: 2026-03-10T16:04:08.256Z
-Stopped at: Phase 02.1 context gathered
-Resume file: .planning/phases/02.1-select-language-feature-completeness/02.1-CONTEXT.md
+Last session: 2026-03-10T16:27:26.319Z
+Stopped at: Completed 02.1-select-language-feature-completeness-01-PLAN.md
+Resume file: None
