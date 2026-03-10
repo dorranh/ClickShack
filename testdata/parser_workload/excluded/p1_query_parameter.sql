@@ -1,0 +1,1 @@
+SELECT {id:Int32}
