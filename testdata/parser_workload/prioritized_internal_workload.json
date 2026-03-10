@@ -1,0 +1,92 @@
+{
+  "snapshot_id": "internal-priority-select-2026-03-07",
+  "exported_at": "2026-03-07",
+  "owner": "parser-workload-coverage",
+  "entries": [
+    {
+      "source_id": "IW-001",
+      "priority": "P0",
+      "status": "included",
+      "title": "Simple SELECT projection",
+      "normalized_sql": "SELECT a FROM t"
+    },
+    {
+      "source_id": "IW-002",
+      "priority": "P0",
+      "status": "included",
+      "title": "DISTINCT WHERE ORDER BY LIMIT",
+      "normalized_sql": "SELECT DISTINCT a FROM t WHERE a > 1 ORDER BY a LIMIT 5"
+    },
+    {
+      "source_id": "IW-003",
+      "priority": "P0",
+      "status": "included",
+      "title": "WITH CTE",
+      "normalized_sql": "WITH cte AS (SELECT x FROM t) SELECT x FROM cte"
+    },
+    {
+      "source_id": "IW-004",
+      "priority": "P0",
+      "status": "included",
+      "title": "INNER JOIN ON",
+      "normalized_sql": "SELECT a FROM t1 INNER JOIN t2 ON t1.id = t2.id"
+    },
+    {
+      "source_id": "IW-005",
+      "priority": "P1",
+      "status": "included",
+      "title": "GROUP BY ALL WITH ROLLUP HAVING",
+      "normalized_sql": "SELECT a FROM t GROUP BY ALL WITH ROLLUP HAVING count() > 1"
+    },
+    {
+      "source_id": "IW-006",
+      "priority": "P1",
+      "status": "included",
+      "title": "LIMIT BY ALL",
+      "normalized_sql": "SELECT a FROM t LIMIT 2 BY ALL"
+    },
+    {
+      "source_id": "IW-007",
+      "priority": "P1",
+      "status": "included",
+      "title": "UNION with SETTINGS/FORMAT",
+      "normalized_sql": "SELECT a FROM t UNION ALL SELECT b FROM u SETTINGS max_threads = 1 FORMAT JSON"
+    },
+    {
+      "source_id": "IW-008",
+      "priority": "P0",
+      "status": "excluded",
+      "title": "INSERT statement",
+      "normalized_sql": "INSERT INTO t VALUES (1)"
+    },
+    {
+      "source_id": "IW-009",
+      "priority": "P0",
+      "status": "excluded",
+      "title": "MSSQL TOP",
+      "normalized_sql": "SELECT TOP 10 a FROM t"
+    },
+    {
+      "source_id": "IW-010",
+      "priority": "P0",
+      "status": "excluded",
+      "title": "MSSQL bracketed identifiers",
+      "normalized_sql": "SELECT a FROM [dbo].[t]"
+    },
+    {
+      "source_id": "IW-011",
+      "priority": "P0",
+      "status": "excluded",
+      "title": "MSSQL WITH (NOLOCK)",
+      "normalized_sql": "SELECT a FROM t WITH (NOLOCK)"
+    },
+    {
+      "source_id": "IW-012",
+      "priority": "P1",
+      "status": "deferred",
+      "title": "Query-parameter expression",
+      "normalized_sql": "SELECT {id:Int32}",
+      "notes": "Deferred parser surface in ExpressionElementParsers"
+    }
+  ]
+}
