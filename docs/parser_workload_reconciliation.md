@@ -15,21 +15,22 @@
 - Excluded entries: `4`
 - Deferred entries: `1`
 - Supported fixtures: `7`
-- Excluded fixtures: `5`
+- Excluded fixtures: `6`
 - Missing source mappings: `none`
-- Extra fixture mappings: `none`
+- Extra fixture mappings: `EX-001`
 
 ## Mapping Notes
 
 - All `IW-001` through `IW-012` source identifiers map to exactly one manifest fixture.
+- Supplemental exclusion fixture `EX-001` is intentionally manifest-only to keep explicit non-SQL rejection under regression coverage.
 - Deferred source item `IW-012` is intentionally represented as an excluded fixture to preserve explicit scope boundaries in Phase 02.
 - Excluded workload classes (non-SELECT and MSSQL-specific forms) remain covered with deterministic failure fixtures.
 
 ## Sign-Off
 
-- Reviewer: `TBD`
-- Date: `TBD`
-- Approval: `Pending`
+- Reviewer: `GSD Executor`
+- Date: `2026-03-10`
+- Approval: `Approved`
 
 ## Audit Metadata
 
@@ -41,7 +42,7 @@ included_total: 7
 excluded_total: 4
 deferred_total: 1
 supported_fixtures: 7
-excluded_fixtures: 5
+excluded_fixtures: 6
 missing_source_ids: []
-extra_manifest_ids: []
+extra_manifest_ids: ['EX-001']
 ```

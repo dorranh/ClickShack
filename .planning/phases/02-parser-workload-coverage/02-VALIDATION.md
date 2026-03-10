@@ -49,10 +49,10 @@ created: 2026-03-07
 | 02-02-02 | 02 | 2 | PARS-01, PARS-02 | parser success matrix and determinism | `bash tools/parser_workload_suite.sh supported --manifest testdata/parser_workload/manifest.json` plus `bash tools/parser_workload_suite.sh repeat --manifest testdata/parser_workload/manifest.json` pass exact expected-summary checks, full token-consumption checks, and full-corpus repeat checks for all supported fixtures | ❌ W0 | ⬜ pending |
 | 02-02-03 | 02 | 2 | PARS-02 | parser-layer fixes | `bash tools/parser_workload_suite.sh supported --manifest testdata/parser_workload/manifest.json` plus `bazel --batch --output_user_root=/tmp/bazel-root build //ported_clickhouse:parser_lib` prove any fixes close workload gaps, fully consume tokens, and avoid breaking parser_lib | ✅ | ⬜ pending |
 | 02-02-04 | 02 | 2 | PARS-02 | parser-layer fixes, provenance, and smoke non-regression | `bash tools/parser_workload_suite.sh supported --manifest testdata/parser_workload/manifest.json`, `bazel --batch --output_user_root=/tmp/bazel-root build //ported_clickhouse:parser_lib`, `just smoke-suite`, and `rg -n "ported_clickhouse/parsers" docs/ported_clickhouse_manifest.md` prove workload fixes close parser gaps, preserve provenance, and keep the Phase 01 smoke baseline green | ✅ | ⬜ pending |
-| 02-03-01 | 03 | 3 | PARS-03 | exclusions | `bash tools/parser_workload_suite.sh excluded --manifest testdata/parser_workload/manifest.json` proves excluded non-SQL, MSSQL, and deferred query-parameter fixtures fail deterministically | ❌ W0 | ⬜ pending |
-| 02-03-02 | 03 | 3 | PARS-02, PARS-03 | scope docs | `bash tools/parser_workload_suite.sh audit-docs --manifest testdata/parser_workload/manifest.json --scope-doc docs/parser_workload_scope.md --roadmap-doc docs/select_parser_roadmap.md` proves supported/excluded docs match the manifest | ❌ W0 | ⬜ pending |
-| 02-03-03 | 03 | 3 | PARS-01, PARS-02 | final acceptance and sign-off evidence | `bash tools/parser_workload_suite.sh full --manifest testdata/parser_workload/manifest.json`, `bash tools/parser_workload_suite.sh audit-signoff --manifest testdata/parser_workload/manifest.json --source testdata/parser_workload/prioritized_internal_workload.json --signoff docs/parser_workload_reconciliation.md`, `just smoke-suite`, and `bazel --batch --output_user_root=/tmp/bazel-root build //ported_clickhouse:parser_lib` record the final full-suite acceptance run and prove the reconciliation sign-off still matches the final manifest | ✅ | ⬜ pending |
-| 02-03-04 | 03 | 3 | PARS-02, PARS-03 | final consistency | `bash tools/parser_workload_suite.sh audit-docs --manifest testdata/parser_workload/manifest.json --scope-doc docs/parser_workload_scope.md --validation-doc .planning/phases/02-parser-workload-coverage/02-VALIDATION.md --signoff docs/parser_workload_reconciliation.md` proves fixtures, docs, validation, and sign-off are aligned | ❌ W0 | ⬜ pending |
+| 02-03-01 | 03 | 3 | PARS-03 | exclusions | `bash tools/parser_workload_suite.sh excluded --manifest testdata/parser_workload/manifest.json` proves excluded non-SQL, MSSQL, and deferred query-parameter fixtures fail deterministically | ✅ | ✅ pass |
+| 02-03-02 | 03 | 3 | PARS-02, PARS-03 | scope docs | `bash tools/parser_workload_suite.sh audit-docs --manifest testdata/parser_workload/manifest.json --scope-doc docs/parser_workload_scope.md --roadmap-doc docs/select_parser_roadmap.md` proves supported/excluded docs match the manifest | ✅ | ✅ pass |
+| 02-03-03 | 03 | 3 | PARS-01, PARS-02 | final acceptance and sign-off evidence | `bash tools/parser_workload_suite.sh full --manifest testdata/parser_workload/manifest.json`, `bash tools/parser_workload_suite.sh audit-signoff --manifest testdata/parser_workload/manifest.json --source testdata/parser_workload/prioritized_internal_workload.json --signoff docs/parser_workload_reconciliation.md`, `just smoke-suite`, and `bazel --batch --output_user_root=/tmp/bazel-root build //ported_clickhouse:parser_lib` record the final full-suite acceptance run and prove the reconciliation sign-off still matches the final manifest | ✅ | ✅ pass |
+| 02-03-04 | 03 | 3 | PARS-02, PARS-03 | final consistency | `bash tools/parser_workload_suite.sh audit-docs --manifest testdata/parser_workload/manifest.json --scope-doc docs/parser_workload_scope.md --validation-doc .planning/phases/02-parser-workload-coverage/02-VALIDATION.md --signoff docs/parser_workload_reconciliation.md` proves fixtures, docs, validation, and sign-off are aligned | ✅ | ✅ pass |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -79,3 +79,32 @@ created: 2026-03-07
 - [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** approved 2026-03-07
+
+## Plan 02-03 Execution Evidence (2026-03-10)
+
+### Command Log
+
+1. `bash tools/parser_workload_suite.sh excluded --manifest testdata/parser_workload/manifest.json`
+- Result: `excluded ok: 6 fixtures`
+- Notes: Confirms deterministic excluded failure-class enforcement for non-SQL, non-select, MSSQL, and deferred query-parameter cases.
+
+2. `bash tools/parser_workload_suite.sh audit-docs --manifest testdata/parser_workload/manifest.json --scope-doc docs/parser_workload_scope.md --roadmap-doc docs/select_parser_roadmap.md`
+- Result: `audit-docs ok: supported=7 excluded=6 scope=docs/parser_workload_scope.md`
+
+3. `bash tools/parser_workload_suite.sh full --manifest testdata/parser_workload/manifest.json`
+- Result: `audit ok`, `reconcile report`, `audit-signoff ok`, `supported ok: 7 fixtures`, `excluded ok: 6 fixtures`, `repeat ok: 7 fixtures runs=3`
+
+4. `bash tools/parser_workload_suite.sh audit-signoff --manifest testdata/parser_workload/manifest.json --source testdata/parser_workload/prioritized_internal_workload.json --signoff docs/parser_workload_reconciliation.md`
+- Result: `audit-signoff ok: signoff metadata and source mappings are in sync`
+
+5. `just smoke-suite`
+- Result: green; smoke binaries and parser build targets completed successfully.
+
+6. `bazel --batch --output_user_root=/tmp/bazel-root build //ported_clickhouse:parser_lib`
+- Result: build succeeded.
+
+### Acceptance Status
+
+- Full Phase 02 suite command set is reproducible and green in one run.
+- Reconciliation sign-off metadata matches the final fixture manifest.
+- Scope docs, roadmap scope anchor, and executable fixture matrix are aligned.

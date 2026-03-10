@@ -82,6 +82,18 @@ fi
 manifest_dir="$(cd "$(dirname "${manifest}")" && pwd)"
 runner="bazel-bin/examples/bootstrap/parser_workload_summary"
 
+default_source="${manifest_dir}/prioritized_internal_workload.json"
+default_signoff="${PWD}/docs/parser_workload_reconciliation.md"
+
+apply_default_reconcile_inputs() {
+  if [[ -z "${source}" && -f "${default_source}" ]]; then
+    source="${default_source}"
+  fi
+  if [[ -z "${signoff}" && -f "${default_signoff}" ]]; then
+    signoff="${default_signoff}"
+  fi
+}
+
 audit_manifest() {
   python3 - "${manifest}" "${manifest_dir}" <<'PY'
 import json
@@ -267,6 +279,7 @@ PY
 
 reconcile_core() {
   local mode="$1"
+  apply_default_reconcile_inputs
   if [[ -z "${source}" || -z "${signoff}" ]]; then
     echo "--source and --signoff are required for ${mode}" >&2
     exit 2
