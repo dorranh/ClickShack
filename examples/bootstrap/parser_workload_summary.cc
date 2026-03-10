@@ -66,6 +66,22 @@ std::string joinTypeToString(DB::ASTJoinLite::JoinType type)
             return "FULL";
         case DB::ASTJoinLite::JoinType::Cross:
             return "CROSS";
+        case DB::ASTJoinLite::JoinType::Paste:
+            return "PASTE";
+    }
+    return "UNKNOWN";
+}
+
+std::string joinLocalityToString(DB::ASTJoinLite::JoinLocality locality)
+{
+    switch (locality)
+    {
+        case DB::ASTJoinLite::JoinLocality::Unspecified:
+            return "UNSPECIFIED";
+        case DB::ASTJoinLite::JoinLocality::Global:
+            return "GLOBAL";
+        case DB::ASTJoinLite::JoinLocality::Local:
+            return "LOCAL";
     }
     return "UNKNOWN";
 }
@@ -74,6 +90,7 @@ void summarizeSource(
     const DB::IAST * node,
     std::vector<std::string> & join_types,
     std::vector<std::string> & join_modes,
+    std::vector<std::string> & join_localities,
     std::vector<std::string> & source_kinds)
 {
     if (!node)
@@ -86,8 +103,9 @@ void summarizeSource(
         if (join->is_global)
             mode = "GLOBAL-" + mode;
         join_modes.push_back(mode);
-        summarizeSource(join->left, join_types, join_modes, source_kinds);
-        summarizeSource(join->right, join_types, join_modes, source_kinds);
+        join_localities.push_back(joinLocalityToString(join->join_locality));
+        summarizeSource(join->left, join_types, join_modes, join_localities, source_kinds);
+        summarizeSource(join->right, join_types, join_modes, join_localities, source_kinds);
         return;
     }
 
@@ -420,8 +438,18 @@ SummaryResult summarizeQuery(const std::string & query)
 
     std::vector<std::string> join_types;
     std::vector<std::string> join_modes;
+    std::vector<std::string> join_localities;
     std::vector<std::string> source_kinds;
-    summarizeSource(select->from_source, join_types, join_modes, source_kinds);
+    summarizeSource(select->from_source, join_types, join_modes, join_localities, source_kinds);
+    bool has_explicit_locality = false;
+    for (const auto & locality : join_localities)
+    {
+        if (locality != "UNSPECIFIED")
+        {
+            has_explicit_locality = true;
+            break;
+        }
+    }
 
     std::ostringstream out;
     out << "projections=" << select->expressions->children.size()
@@ -457,6 +485,9 @@ SummaryResult summarizeQuery(const std::string & query)
         << " limit_ties=" << (select->limit && select->limit->with_ties ? 1 : 0)
         << " limit_by_all=" << (select->limit_by && select->limit_by->by_all ? 1 : 0)
         << " offset=" << (select->limit && select->limit->offset_present ? 1 : 0);
+
+    if (has_explicit_locality)
+        out << " join_localities=" << joinCsv(join_localities);
 
     if (select->limit)
     {

@@ -47,8 +47,9 @@ bool parseAlias(IParser::Pos & pos, ASTPtr & alias, Expected & expected)
         || isKeyword(pos, "CROSS") || isKeyword(pos, "JOIN") || isKeyword(pos, "ON") || isKeyword(pos, "OFFSET")
         || isKeyword(pos, "USING") || isKeyword(pos, "QUALIFY")
         || isKeyword(pos, "WINDOW") || isKeyword(pos, "ARRAY") || isKeyword(pos, "SAMPLE")
-        || isKeyword(pos, "FINAL") || isKeyword(pos, "GLOBAL") || isKeyword(pos, "OUTER")
+        || isKeyword(pos, "FINAL") || isKeyword(pos, "GLOBAL") || isKeyword(pos, "LOCAL") || isKeyword(pos, "OUTER")
         || isKeyword(pos, "ANY") || isKeyword(pos, "SEMI") || isKeyword(pos, "ANTI") || isKeyword(pos, "ASOF")
+        || isKeyword(pos, "PASTE")
         || isKeyword(pos, "FETCH") || isKeyword(pos, "ROW") || isKeyword(pos, "ROWS") || isKeyword(pos, "ONLY")
         || isKeyword(pos, "INTERSECT") || isKeyword(pos, "EXCEPT")
         || isKeyword(pos, "SETTINGS") || isKeyword(pos, "FORMAT")
@@ -202,14 +203,29 @@ bool parseTableAtom(IParser::Pos & pos, ASTPtr & node, Expected & expected)
     return true;
 }
 
-bool parseJoinOperator(IParser::Pos & pos, ASTJoinLite::JoinType & join_type, bool & is_global, String & strictness)
+bool parseJoinOperator(
+    IParser::Pos & pos,
+    ASTJoinLite::JoinType & join_type,
+    ASTJoinLite::JoinLocality & join_locality,
+    bool & is_global,
+    bool & is_local,
+    String & strictness)
 {
+    join_locality = ASTJoinLite::JoinLocality::Unspecified;
     is_global = false;
+    is_local = false;
     strictness.clear();
 
     if (isKeyword(pos, "GLOBAL"))
     {
+        join_locality = ASTJoinLite::JoinLocality::Global;
         is_global = true;
+        ++pos;
+    }
+    else if (isKeyword(pos, "LOCAL"))
+    {
+        join_locality = ASTJoinLite::JoinLocality::Local;
+        is_local = true;
         ++pos;
     }
 
@@ -312,6 +328,18 @@ bool parseJoinOperator(IParser::Pos & pos, ASTJoinLite::JoinType & join_type, bo
         return true;
     }
 
+    if (isKeyword(pos, "PASTE"))
+    {
+        ++pos;
+        if (!strictness.empty())
+            return false;
+        if (!isKeyword(pos, "JOIN"))
+            return false;
+        ++pos;
+        join_type = ASTJoinLite::JoinType::Paste;
+        return true;
+    }
+
     if (isKeyword(pos, "JOIN"))
     {
         ++pos;
@@ -383,9 +411,11 @@ bool ParserTableSourceLite::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
     {
         Pos join_pos = pos;
         ASTJoinLite::JoinType join_type = ASTJoinLite::JoinType::Inner;
+        ASTJoinLite::JoinLocality join_locality = ASTJoinLite::JoinLocality::Unspecified;
         bool is_global = false;
+        bool is_local = false;
         String strictness;
-        if (!parseJoinOperator(join_pos, join_type, is_global, strictness))
+        if (!parseJoinOperator(join_pos, join_type, join_locality, is_global, is_local, strictness))
             break;
 
         ASTPtr right;
@@ -394,7 +424,7 @@ bool ParserTableSourceLite::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
 
         ASTPtr on_expr;
         ASTPtr using_columns;
-        if (join_type == ASTJoinLite::JoinType::Cross)
+        if (join_type == ASTJoinLite::JoinType::Cross || join_type == ASTJoinLite::JoinType::Paste)
         {
             if (isKeyword(join_pos, "ON") || isKeyword(join_pos, "USING"))
                 return false;
@@ -422,7 +452,9 @@ bool ParserTableSourceLite::parseImpl(Pos & pos, ASTPtr & node, Expected & expec
 
         auto join = make_intrusive<ASTJoinLite>();
         join->join_type = join_type;
+        join->join_locality = join_locality;
         join->is_global = is_global;
+        join->is_local = is_local;
         join->strictness = strictness;
         join->set(join->left, left);
         join->set(join->right, right);

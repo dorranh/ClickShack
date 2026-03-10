@@ -16,10 +16,20 @@ public:
         Right,
         Full,
         Cross,
+        Paste,
+    };
+
+    enum class JoinLocality : UInt8
+    {
+        Unspecified,
+        Global,
+        Local,
     };
 
     JoinType join_type = JoinType::Inner;
+    JoinLocality join_locality = JoinLocality::Unspecified;
     bool is_global = false;
+    bool is_local = false;
     String strictness;
     IAST * left = nullptr;
     IAST * right = nullptr;
@@ -37,6 +47,8 @@ public:
             type = "FULL";
         else if (join_type == JoinType::Cross)
             type = "CROSS";
+        else if (join_type == JoinType::Paste)
+            type = "PASTE";
         return "JoinLite" + String(1, delim) + type;
     }
 
@@ -44,7 +56,9 @@ public:
     {
         auto res = make_intrusive<ASTJoinLite>();
         res->join_type = join_type;
+        res->join_locality = join_locality;
         res->is_global = is_global;
+        res->is_local = is_local;
         res->strictness = strictness;
         if (left)
             res->set(res->left, left->clone());
