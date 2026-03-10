@@ -10,6 +10,7 @@
 #include <cctype>
 
 #include "ported_clickhouse/parsers/ASTJoinLite.h"
+#include "ported_clickhouse/parsers/ASTOrderByElementLite.h"
 #include "ported_clickhouse/parsers/ASTSelectRichQuery.h"
 #include "ported_clickhouse/parsers/ASTSelectSetLite.h"
 #include "ported_clickhouse/parsers/ASTTableExprLite.h"
@@ -450,6 +451,30 @@ SummaryResult summarizeQuery(const std::string & query)
             break;
         }
     }
+    size_t distinct_on_count = 0;
+    size_t order_nulls = 0;
+    size_t order_collate = 0;
+    size_t order_fill = 0;
+    size_t order_interpolate = 0;
+    if (select->distinct_on_expressions)
+        distinct_on_count = select->distinct_on_expressions->children.size();
+    if (select->order_by_list)
+    {
+        for (const auto & child : select->order_by_list->children)
+        {
+            const auto * elem = child ? child->as<DB::ASTOrderByElementLite>() : nullptr;
+            if (!elem)
+                continue;
+            if (elem->nulls_order != DB::ASTOrderByElementLite::NullsOrder::Unspecified)
+                ++order_nulls;
+            if (!elem->collate_name.empty())
+                ++order_collate;
+            if (elem->with_fill)
+                ++order_fill;
+            if (elem->interpolate)
+                ++order_interpolate;
+        }
+    }
 
     std::ostringstream out;
     out << "projections=" << select->expressions->children.size()
@@ -462,7 +487,12 @@ SummaryResult summarizeQuery(const std::string & query)
         << " join_modes=" << joinCsv(join_modes)
         << " source_kinds=" << joinCsv(source_kinds)
         << " with=" << (select->with_expressions ? 1 : 0)
+        << " with_recursive=" << (select->with_recursive ? 1 : 0)
         << " distinct=" << (select->distinct ? 1 : 0)
+        << " select_all=" << (select->select_all ? 1 : 0)
+        << " distinct_on=" << distinct_on_count
+        << " top=" << (select->top_present ? 1 : 0)
+        << " top_ties=" << (select->top_with_ties ? 1 : 0)
         << " final=" << (select->from_final ? 1 : 0)
         << " sample=" << (select->sample_size ? 1 : 0)
         << " sample_offset=" << (select->sample_offset ? 1 : 0)
@@ -479,6 +509,10 @@ SummaryResult summarizeQuery(const std::string & query)
         << " windows=" << (select->window_list ? select->window_list->children.size() : 0)
         << " qualify=" << (select->qualify_expression ? 1 : 0)
         << " order_by=" << (select->order_by_list ? 1 : 0)
+        << " order_nulls=" << order_nulls
+        << " order_collate=" << order_collate
+        << " order_fill=" << order_fill
+        << " order_interpolate=" << order_interpolate
         << " limit=" << (select->limit ? 1 : 0)
         << " limit_by=" << (select->limit_by ? 1 : 0)
         << " limit_by_offset=" << (select->limit_by && select->limit_by->offset_present ? 1 : 0)
@@ -495,6 +529,8 @@ SummaryResult summarizeQuery(const std::string & query)
         if (select->limit->offset_present)
             out << " offset_value=" << select->limit->offset;
     }
+    if (select->top_present)
+        out << " top_value=" << select->top_count;
     if (select->limit_by)
     {
         out << " limit_by_value=" << select->limit_by->limit;

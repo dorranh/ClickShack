@@ -1,0 +1,1 @@
+SELECT DISTINCT ON (a, b) a, b FROM t
