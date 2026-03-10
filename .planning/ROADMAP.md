@@ -11,7 +11,7 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Build Baseline Recovery** - Re-establish reproducible Bazel build/test behavior from clean checkout. (completed 2026-03-07)
-- [ ] **Phase 2: Parser Workload Coverage** - Make in-scope internal `SELECT` parsing deterministic with explicit scope guardrails.
+- [x] **Phase 2: Parser Workload Coverage** - Make in-scope internal `SELECT` parsing deterministic with explicit scope guardrails. (completed 2026-03-10)
 - [ ] **Phase 3: AST to IR v1 Contract** - Deliver a deterministic, versioned parser IR output boundary.
 - [ ] **Phase 4: Diagnostics and Regression Guardrails** - Ensure parse failures and output drift are caught quickly and reproducibly.
 - [ ] **Phase 5: Dependency and Provenance Hardening** - Reduce dependency pull-through and enforce canonical source/provenance discipline.
@@ -73,7 +73,7 @@ This roadmap delivers a reliable parser-only ClickHouse bridge in dependency ord
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Build Baseline Recovery | 2/2 | Complete | 2026-03-07 |
-| 2. Parser Workload Coverage | 1/3 | In Progress | - |
+| 2. Parser Workload Coverage | 3/3 | Complete | 2026-03-10 |
 | 3. AST to IR v1 Contract | 0/TBD | Not started | - |
 | 4. Diagnostics and Regression Guardrails | 0/TBD | Not started | - |
 | 5. Dependency and Provenance Hardening | 0/TBD | Not started | - |
