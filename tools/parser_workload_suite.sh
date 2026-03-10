@@ -334,61 +334,17 @@ build_runner() {
 run_supported_mode() {
   local mode="$1"
   build_runner
-  local count=0
-  while IFS=$'\t' read -r fid kind fixture_path expected_summary _failure; do
-    [[ -z "${fid}" ]] && continue
-    actual_summary="$(${runner} --query-file "${fixture_path}")"
-    if [[ "${actual_summary}" != "${expected_summary}" ]]; then
-      echo "summary mismatch for ${fid}" >&2
-      echo "expected: ${expected_summary}" >&2
-      echo "actual:   ${actual_summary}" >&2
-      exit 1
-    fi
-    count=$((count + 1))
-  done < <(fixture_rows "${mode}")
-
-  echo "${mode} ok: ${count} fixtures"
+  "${runner}" --manifest "${manifest}" --mode "${mode}"
 }
 
 run_excluded() {
   build_runner
-  local count=0
-  while IFS=$'\t' read -r fid _kind fixture_path _expected_summary expected_failure_class; do
-    [[ -z "${fid}" ]] && continue
-    out_file="/tmp/parser_workload_${fid}.out"
-    err_file="/tmp/parser_workload_${fid}.err"
-    if "${runner}" --query-file "${fixture_path}" >"${out_file}" 2>"${err_file}"; then
-      echo "excluded fixture unexpectedly succeeded: ${fid}" >&2
-      exit 1
-    fi
-
-    err_text="$(cat "${err_file}")"
-    if [[ -n "${expected_failure_class}" ]] && [[ "${err_text}" != *"classification=${expected_failure_class}"* ]]; then
-      echo "excluded fixture class mismatch for ${fid}: expected ${expected_failure_class}" >&2
-      echo "stderr: ${err_text}" >&2
-      exit 1
-    fi
-    count=$((count + 1))
-  done < <(fixture_rows "excluded")
-
-  echo "excluded ok: ${count} fixtures"
+  "${runner}" --manifest "${manifest}" --mode excluded
 }
 
 run_repeat() {
   build_runner
-  local count=0
-  while IFS=$'\t' read -r fid _kind fixture_path _expected_summary _failure; do
-    [[ -z "${fid}" ]] && continue
-    first="$(${runner} --query-file "${fixture_path}")"
-    second="$(${runner} --query-file "${fixture_path}")"
-    if [[ "${first}" != "${second}" ]]; then
-      echo "repeat mismatch for ${fid}" >&2
-      exit 1
-    fi
-    count=$((count + 1))
-  done < <(fixture_rows "supported")
-
-  echo "repeat ok: ${count} fixtures"
+  "${runner}" --manifest "${manifest}" --mode repeat
 }
 
 case "${command}" in
