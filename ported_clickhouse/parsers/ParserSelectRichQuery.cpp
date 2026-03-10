@@ -299,6 +299,8 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         query->set(query->where_expression, clauses.where_expression);
     if (clauses.group_by_expressions)
         query->set(query->group_by_expressions, clauses.group_by_expressions);
+    if (clauses.grouping_sets_expressions)
+        query->set(query->grouping_sets_expressions, clauses.grouping_sets_expressions);
     query->group_by_all = clauses.group_by_all;
     query->group_by_with_rollup = clauses.group_by_with_rollup;
     query->group_by_with_cube = clauses.group_by_with_cube;
@@ -311,6 +313,7 @@ bool parseSelectRichCore(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         query->set(query->qualify_expression, clauses.qualify_expression);
     if (clauses.order_by_list)
         query->set(query->order_by_list, clauses.order_by_list);
+    query->order_by_all = clauses.order_by_all;
     if (clauses.limit)
         query->set(query->limit, clauses.limit);
     if (clauses.limit_by)

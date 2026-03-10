@@ -5,7 +5,6 @@
 #include "ported_clickhouse/parsers/ASTFunction.h"
 #include "ported_clickhouse/parsers/ASTIdentifier.h"
 #include "ported_clickhouse/parsers/ASTLiteral.h"
-#include "ported_clickhouse/parsers/ASTWindowDefinitionLite.h"
 #include "ported_clickhouse/parsers/CommonParsers.h"
 #include "ported_clickhouse/parsers/ExpressionElementParsers.h"
 
@@ -79,6 +78,7 @@ ASTPtr makeFunctionNode(const String & name, const ASTs & args)
 }
 
 bool parseExpressionImpl(IParser::Pos & pos, ASTPtr & node, Expected & expected, int min_precedence);
+bool parseIdentifierPath(IParser::Pos & pos, String & out, Expected & expected);
 
 bool parseOverClause(IParser::Pos & pos, ASTPtr & lhs, Expected & expected)
 {
@@ -86,7 +86,7 @@ bool parseOverClause(IParser::Pos & pos, ASTPtr & lhs, Expected & expected)
         return false;
     ++pos;
 
-    auto window_def = make_intrusive<ASTWindowDefinitionLite>();
+    ASTPtr window_spec;
 
     ParserToken open(TokenType::OpeningRoundBracket);
     if (open.ignore(pos, expected))
@@ -106,7 +106,7 @@ bool parseOverClause(IParser::Pos & pos, ASTPtr & lhs, Expected & expected)
                 {
                     body_end = pos->begin;
                     ++pos;
-                    window_def->body.assign(body_begin, body_end);
+                    window_spec = make_intrusive<ASTLiteral>(ASTLiteral::Kind::String, String(body_begin, body_end));
                     break;
                 }
             }
@@ -121,15 +121,14 @@ bool parseOverClause(IParser::Pos & pos, ASTPtr & lhs, Expected & expected)
         String window_name;
         if (!parseIdentifierPath(pos, window_name, expected))
             return false;
-        window_def->name = window_name;
-        window_def->is_reference = true;
+        window_spec = make_intrusive<ASTIdentifier>(window_name);
     }
 
     auto over_fn = make_intrusive<ASTFunction>();
     over_fn->name = "over";
     auto args = make_intrusive<ASTExpressionList>();
     args->children.push_back(lhs);
-    args->children.push_back(window_def);
+    args->children.push_back(window_spec);
     over_fn->set(over_fn->arguments, args);
     lhs = over_fn;
     return true;

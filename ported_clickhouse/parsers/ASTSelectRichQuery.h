@@ -31,6 +31,7 @@ public:
     IAST * prewhere_expression = nullptr;
     IAST * where_expression = nullptr;
     ASTExpressionList * group_by_expressions = nullptr;
+    ASTExpressionList * grouping_sets_expressions = nullptr;
     bool group_by_all = false;
     bool group_by_with_rollup = false;
     bool group_by_with_cube = false;
@@ -39,6 +40,7 @@ public:
     ASTWindowListLite * window_list = nullptr;
     IAST * qualify_expression = nullptr;
     ASTOrderByListLite * order_by_list = nullptr;
+    bool order_by_all = false;
     ASTLimitLite * limit = nullptr;
     ASTLimitByLite * limit_by = nullptr;
     ASTExpressionList * settings = nullptr;
@@ -81,6 +83,8 @@ public:
             res->set(res->where_expression, where_expression->clone());
         if (group_by_expressions)
             res->set(res->group_by_expressions, group_by_expressions->clone());
+        if (grouping_sets_expressions)
+            res->set(res->grouping_sets_expressions, grouping_sets_expressions->clone());
         res->group_by_all = group_by_all;
         res->group_by_with_rollup = group_by_with_rollup;
         res->group_by_with_cube = group_by_with_cube;
@@ -93,6 +97,7 @@ public:
             res->set(res->qualify_expression, qualify_expression->clone());
         if (order_by_list)
             res->set(res->order_by_list, order_by_list->clone());
+        res->order_by_all = order_by_all;
         if (limit)
             res->set(res->limit, limit->clone());
         if (limit_by)

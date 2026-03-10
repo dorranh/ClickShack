@@ -11,11 +11,12 @@
 
 #include "ported_clickhouse/parsers/ASTJoinLite.h"
 #include "ported_clickhouse/parsers/ASTFunction.h"
+#include "ported_clickhouse/parsers/ASTIdentifier.h"
+#include "ported_clickhouse/parsers/ASTLiteral.h"
 #include "ported_clickhouse/parsers/ASTOrderByElementLite.h"
 #include "ported_clickhouse/parsers/ASTSelectRichQuery.h"
 #include "ported_clickhouse/parsers/ASTSelectSetLite.h"
 #include "ported_clickhouse/parsers/ASTTableExprLite.h"
-#include "ported_clickhouse/parsers/ASTWindowDefinitionLite.h"
 #include "ported_clickhouse/parsers/IParser.h"
 #include "ported_clickhouse/parsers/ParserSelectRichQuery.h"
 
@@ -53,6 +54,17 @@ std::string joinCsv(const std::vector<std::string> & values)
         out += values[i];
     }
     return out;
+}
+
+std::string summarizeLimitExpr(const DB::IAST * node)
+{
+    if (!node)
+        return "";
+    if (const auto * literal = node->as<DB::ASTLiteral>())
+        return literal->value;
+    if (const auto * identifier = node->as<DB::ASTIdentifier>())
+        return identifier->name();
+    return node->getID('|');
 }
 
 std::string joinTypeToString(DB::ASTJoinLite::JoinType type)
@@ -151,13 +163,11 @@ void summarizeExpression(
             ++over_count;
             if (fn->arguments && fn->arguments->children.size() >= 2)
             {
-                if (const auto * window = fn->arguments->children[1] ? fn->arguments->children[1]->as<DB::ASTWindowDefinitionLite>() : nullptr)
-                {
-                    if (window->is_reference)
-                        ++over_named_count;
-                    else
-                        ++over_inline_count;
-                }
+                const auto * named = fn->arguments->children[1] ? fn->arguments->children[1]->as<DB::ASTIdentifier>() : nullptr;
+                if (named)
+                    ++over_named_count;
+                else
+                    ++over_inline_count;
             }
         }
     }
@@ -568,16 +578,32 @@ SummaryResult summarizeQuery(const std::string & query)
     if (select->limit)
     {
         out << " limit_value=" << select->limit->limit;
+        const std::string limit_expr = summarizeLimitExpr(select->limit->limit_expression);
+        if (!limit_expr.empty())
+            out << " limit_expr=" << limit_expr;
         if (select->limit->offset_present)
+        {
             out << " offset_value=" << select->limit->offset;
+            const std::string offset_expr = summarizeLimitExpr(select->limit->offset_expression);
+            if (!offset_expr.empty())
+                out << " offset_expr=" << offset_expr;
+        }
     }
     if (select->top_present)
         out << " top_value=" << select->top_count;
     if (select->limit_by)
     {
         out << " limit_by_value=" << select->limit_by->limit;
+        const std::string limit_by_expr = summarizeLimitExpr(select->limit_by->limit_expression);
+        if (!limit_by_expr.empty())
+            out << " limit_by_expr=" << limit_by_expr;
         if (select->limit_by->offset_present)
+        {
             out << " limit_by_offset_value=" << select->limit_by->offset;
+            const std::string limit_by_offset_expr = summarizeLimitExpr(select->limit_by->offset_expression);
+            if (!limit_by_offset_expr.empty())
+                out << " limit_by_offset_expr=" << limit_by_offset_expr;
+        }
     }
     if (simple_case_count > 0 || over_count > 0)
     {
@@ -586,6 +612,10 @@ SummaryResult summarizeQuery(const std::string & query)
             << " over_named=" << over_named_count
             << " over_inline=" << over_inline_count;
     }
+    if (select->grouping_sets_expressions)
+        out << " grouping_sets=1";
+    if (select->order_by_all)
+        out << " order_by_all=1";
 
     return {.code = 0, .classification = "ok", .summary = out.str()};
 }

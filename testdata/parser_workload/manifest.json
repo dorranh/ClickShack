@@ -27,7 +27,7 @@
         "limit"
       ],
       "expected_result_kind": "success",
-      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=1 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=1 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=1 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=1 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0 limit_value=5",
+      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=1 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=1 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=1 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=1 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0 limit_value=5 limit_expr=5",
       "exclusion_reason": ""
     },
     {
@@ -81,7 +81,7 @@
         "limit_by"
       ],
       "expected_result_kind": "success",
-      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=1 limit_by_offset=0 limit_ties=0 limit_by_all=1 offset=0 limit_by_value=2",
+      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=1 limit_by_offset=0 limit_ties=0 limit_by_all=1 offset=0 limit_by_value=2 limit_by_expr=2",
       "exclusion_reason": ""
     },
     {
@@ -260,6 +260,102 @@
       "expected_result_kind": "success",
       "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=1 join_types=PASTE join_modes=none source_kinds=table,table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0",
       "exclusion_reason": ""
+    },
+    {
+      "id": "p1_case_over_inline",
+      "workload_source_id": "EX-W2-001",
+      "path": "supported/p1_case_over_inline.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "case",
+        "window",
+        "over"
+      ],
+      "expected_result_kind": "success",
+      "expected_canonical_summary": "projections=2 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0 simple_case=1 over=1 over_named=0 over_inline=1",
+      "exclusion_reason": ""
+    },
+    {
+      "id": "p1_over_named_window",
+      "workload_source_id": "EX-W2-002",
+      "path": "supported/p1_over_named_window.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "window",
+        "over",
+        "window_name"
+      ],
+      "expected_result_kind": "success",
+      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=1 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0 simple_case=0 over=1 over_named=1 over_inline=0",
+      "exclusion_reason": ""
+    },
+    {
+      "id": "p1_order_by_all",
+      "workload_source_id": "EX-W2-003",
+      "path": "supported/p1_order_by_all.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "order_by",
+        "order_by_all"
+      ],
+      "expected_result_kind": "success",
+      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0 order_by_all=1",
+      "exclusion_reason": ""
+    },
+    {
+      "id": "p1_grouping_sets",
+      "workload_source_id": "EX-W2-004",
+      "path": "supported/p1_grouping_sets.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "group_by",
+        "grouping_sets"
+      ],
+      "expected_result_kind": "success",
+      "expected_canonical_summary": "projections=2 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0 grouping_sets=1",
+      "exclusion_reason": ""
+    },
+    {
+      "id": "p1_limit_expr_offset",
+      "workload_source_id": "EX-W2-005",
+      "path": "supported/p1_limit_expr_offset.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "limit",
+        "offset",
+        "expression"
+      ],
+      "expected_result_kind": "success",
+      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=1 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=1 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=1 limit_value= limit_expr=ExpressionOpsLite|+ offset_value= offset_expr=ExpressionOpsLite|*",
+      "exclusion_reason": ""
+    },
+    {
+      "id": "p1_fetch_expr",
+      "workload_source_id": "EX-W2-006",
+      "path": "supported/p1_fetch_expr.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "offset",
+        "fetch",
+        "expression"
+      ],
+      "expected_result_kind": "success",
+      "expected_canonical_summary": "projections=1 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=0 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=1 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=1 limit_by=0 limit_by_offset=0 limit_ties=1 limit_by_all=0 offset=1 limit_value= limit_expr=ExpressionOpsLite|+ offset_value= offset_expr=ExpressionOpsLite|+",
+      "exclusion_reason": ""
+    },
+    {
+      "id": "p1_parenthesized_table_expr",
+      "workload_source_id": "EX-W2-007",
+      "path": "excluded/p1_parenthesized_table_expr.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "from",
+        "table_expr_parenthesized"
+      ],
+      "expected_result_kind": "excluded",
+      "expected_canonical_summary": "",
+      "exclusion_reason": "Parenthesized table expressions without subquery wrappers remain excluded until table atom coverage is expanded.",
+      "expected_failure_class": "parse_failed"
     }
   ]
 }

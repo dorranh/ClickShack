@@ -7,6 +7,7 @@
 #include "ported_clickhouse/parsers/ASTWindowDefinitionLite.h"
 #include "ported_clickhouse/parsers/ASTWindowListLite.h"
 #include "ported_clickhouse/parsers/ASTIdentifier.h"
+#include "ported_clickhouse/parsers/ASTLiteral.h"
 #include "ported_clickhouse/parsers/CommonParsers.h"
 #include "ported_clickhouse/parsers/ExpressionElementParsers.h"
 #include "ported_clickhouse/parsers/ExpressionOpsLiteParsers.h"
@@ -26,12 +27,49 @@ bool isKeyword(TokenIterator pos, const char * keyword)
     return pos->size() == len && strncasecmp(pos->begin, keyword, len) == 0;
 }
 
-bool parseNumberToken(IParser::Pos & pos, String & out)
+bool parseLimitExpression(IParser::Pos & pos, ASTPtr & expr, String & fallback, Expected & expected)
 {
-    if (pos->type != TokenType::Number)
+    ParserExpressionOpsLite expression_p;
+    if (!expression_p.parse(pos, expr, expected))
         return false;
-    out.assign(pos->begin, pos->end);
-    ++pos;
+
+    if (const auto * literal = expr ? expr->as<ASTLiteral>() : nullptr)
+        fallback = literal->value;
+    else
+        fallback.clear();
+    return true;
+}
+
+bool parseGroupingSetsList(IParser::Pos & pos, ASTPtr & node, Expected & expected)
+{
+    ParserToken open(TokenType::OpeningRoundBracket);
+    ParserToken close(TokenType::ClosingRoundBracket);
+    ParserToken comma(TokenType::Comma);
+    ParserExpressionListOpsLite expr_list_p;
+
+    if (!open.ignore(pos, expected))
+        return false;
+
+    auto groups = make_intrusive<ASTExpressionList>();
+    while (true)
+    {
+        ASTPtr group_exprs;
+        if (!open.ignore(pos, expected))
+            return false;
+        if (!expr_list_p.parse(pos, group_exprs, expected))
+            return false;
+        if (!close.ignore(pos, expected))
+            return false;
+        groups->children.push_back(group_exprs);
+
+        if (!comma.ignore(pos, expected))
+            break;
+    }
+
+    if (!close.ignore(pos, expected))
+        return false;
+
+    node = groups;
     return true;
 }
 
@@ -295,6 +333,15 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         {
             result.group_by_all = true;
         }
+        else if (isKeyword(pos, "GROUPING"))
+        {
+            ++pos;
+            if (!isKeyword(pos, "SETS"))
+                return false;
+            ++pos;
+            if (!parseGroupingSetsList(pos, result.grouping_sets_expressions, expected))
+                return false;
+        }
         else
         {
             ParserExpressionListOpsLite expr_list_p;
@@ -345,15 +392,25 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
     {
         if (!s_by.ignore(pos, expected))
             return false;
-        if (!parseOrderByList(pos, result.order_by_list, expected))
-            return false;
+        IParser::Pos all_pos = pos;
+        if (s_all.ignore(all_pos, expected))
+        {
+            result.order_by_all = true;
+            pos = all_pos;
+        }
+        else
+        {
+            if (!parseOrderByList(pos, result.order_by_list, expected))
+                return false;
+        }
     }
 
     if (s_limit.ignore(pos, expected))
     {
         ParserToken comma(TokenType::Comma);
+        ASTPtr limit_expr;
         String limit_value;
-        if (!parseNumberToken(pos, limit_value))
+        if (!parseLimitExpression(pos, limit_expr, limit_value, expected))
             return false;
 
         // LIMIT count OFFSET offset BY ...
@@ -361,15 +418,18 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         if (s_offset.ignore(offset_by_pos, expected))
         {
             String offset_value;
-            if (!parseNumberToken(offset_by_pos, offset_value))
+            ASTPtr offset_expr;
+            if (!parseLimitExpression(offset_by_pos, offset_expr, offset_value, expected))
                 return false;
 
             if (s_by.ignore(offset_by_pos, expected))
             {
                 auto limit_by = make_intrusive<ASTLimitByLite>();
                 limit_by->limit = limit_value;
+                limit_by->set(limit_by->limit_expression, limit_expr);
                 limit_by->offset_present = true;
                 limit_by->offset = offset_value;
+                limit_by->set(limit_by->offset_expression, offset_expr);
 
                 if (s_all.ignore(offset_by_pos, expected))
                 {
@@ -394,7 +454,8 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         if (comma.ignore(comma_by_pos, expected))
         {
             String count_value;
-            if (!parseNumberToken(comma_by_pos, count_value))
+            ASTPtr count_expr;
+            if (!parseLimitExpression(comma_by_pos, count_expr, count_value, expected))
                 return false;
 
             if (s_by.ignore(comma_by_pos, expected))
@@ -402,7 +463,9 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
                 auto limit_by = make_intrusive<ASTLimitByLite>();
                 limit_by->offset_present = true;
                 limit_by->offset = limit_value;
+                limit_by->set(limit_by->offset_expression, limit_expr);
                 limit_by->limit = count_value;
+                limit_by->set(limit_by->limit_expression, count_expr);
 
                 if (s_all.ignore(comma_by_pos, expected))
                 {
@@ -427,6 +490,7 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         {
             auto limit_by = make_intrusive<ASTLimitByLite>();
             limit_by->limit = limit_value;
+            limit_by->set(limit_by->limit_expression, limit_expr);
 
             if (s_all.ignore(by_pos, expected))
             {
@@ -447,16 +511,20 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
 
         auto limit = make_intrusive<ASTLimitLite>();
         limit->limit = limit_value;
+        limit->set(limit->limit_expression, limit_expr);
 
         IParser::Pos comma_pos = pos;
         if (comma.ignore(comma_pos, expected))
         {
             String second_value;
-            if (!parseNumberToken(comma_pos, second_value))
+            ASTPtr second_expr;
+            if (!parseLimitExpression(comma_pos, second_expr, second_value, expected))
                 return false;
             limit->offset_present = true;
             limit->offset = limit_value;
+            limit->set(limit->offset_expression, limit_expr);
             limit->limit = second_value;
+            limit->set(limit->limit_expression, second_expr);
             pos = comma_pos;
         }
         else
@@ -465,10 +533,12 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
             if (s_offset.ignore(offset_pos, expected))
             {
                 String offset_value;
-                if (!parseNumberToken(offset_pos, offset_value))
+                ASTPtr offset_expr;
+                if (!parseLimitExpression(offset_pos, offset_expr, offset_value, expected))
                     return false;
                 limit->offset_present = true;
                 limit->offset = offset_value;
+                limit->set(limit->offset_expression, offset_expr);
                 pos = offset_pos;
             }
         }
@@ -494,10 +564,12 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
         if (s_offset.ignore(fetch_pos, expected))
         {
             String offset_value;
-            if (!parseNumberToken(fetch_pos, offset_value))
+            ASTPtr offset_expr;
+            if (!parseLimitExpression(fetch_pos, offset_expr, offset_value, expected))
                 return false;
             limit->offset_present = true;
             limit->offset = offset_value;
+            limit->set(limit->offset_expression, offset_expr);
             s_row.ignore(fetch_pos, expected) || s_rows.ignore(fetch_pos, expected);
         }
 
@@ -507,9 +579,11 @@ bool parseSelectClausesLite(IParser::Pos & pos, SelectClausesLiteResult & result
                 s_next.ignore(fetch_pos, expected);
 
             String fetch_count;
-            if (!parseNumberToken(fetch_pos, fetch_count))
+            ASTPtr fetch_expr;
+            if (!parseLimitExpression(fetch_pos, fetch_expr, fetch_count, expected))
                 return false;
             limit->limit = fetch_count;
+            limit->set(limit->limit_expression, fetch_expr);
             saw_fetch = true;
 
             if (!s_row.ignore(fetch_pos, expected))
