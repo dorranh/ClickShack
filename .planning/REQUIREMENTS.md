@@ -13,9 +13,9 @@
 
 ### Parser Behavior
 
-- [ ] **PARS-01**: Library can parse prioritized internal ClickHouse `SELECT` workload queries deterministically (same input -> same parse result).
-- [ ] **PARS-02**: Parser coverage includes in-scope SQL constructs required by current internal workload with explicit unsupported grammar list.
-- [ ] **PARS-03**: Parser scope excludes non-SQL and MSSQL branches unless explicitly re-scoped in a future milestone.
+- [x] **PARS-01**: Library can parse prioritized internal ClickHouse `SELECT` workload queries deterministically (same input -> same parse result).
+- [x] **PARS-02**: Parser coverage includes in-scope SQL constructs required by current internal workload with explicit unsupported grammar list.
+- [x] **PARS-03**: Parser scope excludes non-SQL and MSSQL branches unless explicitly re-scoped in a future milestone.
 
 ### AST and IR Contract
 
@@ -59,9 +59,9 @@
 | BUILD-01 | Phase 1 | Complete |
 | BUILD-02 | Phase 1 | Complete |
 | BUILD-03 | Phase 1 | Complete |
-| PARS-01 | Phase 2 | Pending |
-| PARS-02 | Phase 2 | Pending |
-| PARS-03 | Phase 2 | Pending |
+| PARS-01 | Phase 2 | Complete |
+| PARS-02 | Phase 2 | Complete |
+| PARS-03 | Phase 2 | Complete |
 | IR-01 | Phase 3 | Pending |
 | IR-02 | Phase 3 | Pending |
 | IR-03 | Phase 3 | Pending |
@@ -79,4 +79,4 @@
 
 ---
 *Requirements defined: 2026-03-07*
-*Last updated: 2026-03-07 after Phase 1 completion*
+*Last updated: 2026-03-10 after Phase 2 Plan 01 completion*
