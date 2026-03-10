@@ -1,5 +1,10 @@
 common --enable_bzlmod
 
+# Use the local wrapper that strips unsupported -fuse-ld values on macOS.
+build --repo_env=PATH=/Users/dorran/dev/clickshack/tools:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+build --repo_env=CC=cc_no_lld.sh
+build --repo_env=CXX=cc_no_lld.sh
+
 # Optional opt-in wrapper for sanitizer experiments.
 build:sanitize_wrapper --repo_env=CC=./tools/clang_sanitize_fuse_ld.sh
 build:sanitize_wrapper --repo_env=CXX=./tools/clang_sanitize_fuse_ld.sh
