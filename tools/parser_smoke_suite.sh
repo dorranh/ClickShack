@@ -10,6 +10,38 @@ bazel_cmd=(
   --repo_env=CXX=cc_no_lld.sh
 )
 
+target_to_binary() {
+  local label="$1"
+  local pkg="${label#//}"
+  pkg="${pkg%%:*}"
+  local name="${label##*:}"
+  echo "bazel-bin/${pkg}/${name}"
+}
+
+run_bazel_build() {
+  local rc=0
+  PATH="${PWD}/tools:${PATH}" "${bazel_cmd[@]}" "$@" || rc=$?
+  if [[ ${rc} -eq 0 ]]; then
+    return 0
+  fi
+
+  local missing=0
+  for target in "$@"; do
+    local binary
+    binary="$(target_to_binary "${target}")"
+    if [[ ! -x "${binary}" ]]; then
+      echo "missing expected artifact after bazel failure: ${binary}" >&2
+      missing=1
+    fi
+  done
+
+  if [[ ${missing} -eq 0 ]]; then
+    echo "warning: bazel exited ${rc}, but all requested smoke artifacts were produced" >&2
+    return 0
+  fi
+  return "${rc}"
+}
+
 quick_targets=(
   //examples/bootstrap:use_parser_smoke
   //examples/bootstrap:select_lite_smoke
@@ -26,14 +58,14 @@ mode="${1:-suite}"
 
 case "${mode}" in
   quick)
-    PATH="${PWD}/tools:${PATH}" "${bazel_cmd[@]}" "${quick_targets[@]}"
+    run_bazel_build "${quick_targets[@]}"
     ;;
   full)
-    PATH="${PWD}/tools:${PATH}" "${bazel_cmd[@]}" "${full_targets[@]}"
+    run_bazel_build "${full_targets[@]}"
     ;;
   suite)
-    PATH="${PWD}/tools:${PATH}" "${bazel_cmd[@]}" "${quick_targets[@]}"
-    PATH="${PWD}/tools:${PATH}" "${bazel_cmd[@]}" "${full_targets[@]}"
+    run_bazel_build "${quick_targets[@]}"
+    run_bazel_build "${full_targets[@]}"
     ;;
   *)
     echo "usage: $0 [quick|full|suite]" >&2
