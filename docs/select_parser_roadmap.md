@@ -2,6 +2,16 @@
 
 This document is the working roadmap for taking `ported_clickhouse` from the current bridge parser to broad `SELECT` parser coverage, without building a query analyzer.
 
+## Phase 02 Workload Contract (Current Acceptance Basis)
+
+Phase 02 workload coverage is fixture-backed, not aspirational. The accepted parser scope is defined by:
+
+- `testdata/parser_workload/manifest.json`
+- `docs/parser_workload_scope.md`
+- `docs/parser_workload_reconciliation.md`
+
+If roadmap language is broader than those artifacts, the fixture corpus and scope document win for acceptance and non-regression checks.
+
 ## Current Baseline
 
 Implemented and green:

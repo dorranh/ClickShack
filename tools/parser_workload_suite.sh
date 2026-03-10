@@ -7,6 +7,7 @@ usage: $0 <command> [options]
 
 commands:
   audit          validate manifest schema and fixture files
+  audit-docs     validate scope/roadmap/validation docs against fixture metadata
   list           enumerate fixture corpus
   reconcile      compare manifest mappings against source snapshot
   audit-signoff  verify sign-off metadata matches reconciliation totals
@@ -20,12 +21,18 @@ options:
   --manifest <path>   manifest path (required)
   --source <path>     workload-source snapshot json (reconcile/audit-signoff/full)
   --signoff <path>    reconciliation markdown doc (reconcile/audit-signoff/full)
+  --scope-doc <path>  scope markdown doc (audit-docs)
+  --roadmap-doc <path> roadmap markdown doc (audit-docs)
+  --validation-doc <path> validation markdown doc (audit-docs)
 USAGE
 }
 
 manifest=""
 source=""
 signoff=""
+scope_doc=""
+roadmap_doc=""
+validation_doc=""
 command="${1:-}"
 if [[ -z "${command}" ]]; then
   usage
@@ -45,6 +52,18 @@ while [[ $# -gt 0 ]]; do
       ;;
     --signoff)
       signoff="${2:-}"
+      shift 2
+      ;;
+    --scope-doc)
+      scope_doc="${2:-}"
+      shift 2
+      ;;
+    --roadmap-doc)
+      roadmap_doc="${2:-}"
+      shift 2
+      ;;
+    --validation-doc)
+      validation_doc="${2:-}"
       shift 2
       ;;
     *)
@@ -142,6 +161,91 @@ for item in fixtures:
 success_count = sum(1 for f in fixtures if f["expected_result_kind"] == "success")
 excluded_count = sum(1 for f in fixtures if f["expected_result_kind"] == "excluded")
 print(f"audit ok: total={len(fixtures)} success={success_count} excluded={excluded_count}")
+PY
+}
+
+audit_docs() {
+  python3 - "${manifest}" "${scope_doc}" "${roadmap_doc}" "${validation_doc}" "${signoff}" <<'PY'
+import json
+import os
+import re
+import sys
+
+manifest_path, scope_doc, roadmap_doc, validation_doc, signoff_path = sys.argv[1:]
+
+if not scope_doc:
+    raise SystemExit("--scope-doc is required for audit-docs")
+if not os.path.isfile(scope_doc):
+    raise SystemExit(f"scope doc not found: {scope_doc}")
+
+with open(manifest_path, encoding="utf-8") as f:
+    fixtures = json.load(f)["fixtures"]
+with open(scope_doc, encoding="utf-8") as f:
+    scope_text = f.read()
+
+supported = [f for f in fixtures if f.get("expected_result_kind") == "success"]
+excluded = [f for f in fixtures if f.get("expected_result_kind") == "excluded"]
+
+scope_lower = scope_text.lower()
+if "supported" not in scope_lower or "excluded" not in scope_lower:
+    raise SystemExit("scope doc must include supported and excluded sections")
+
+required_exclusion_tags = {"non_sql", "non_select", "mssql", "query_parameter"}
+manifest_tags = {tag for f in excluded for tag in f.get("clause_tags", [])}
+missing_tags = sorted(tag for tag in required_exclusion_tags if tag not in manifest_tags)
+if missing_tags:
+    raise SystemExit(f"manifest excluded coverage missing required tags: {missing_tags}")
+
+required_scope_terms = [
+    "non-sql",
+    "non-select",
+    "mssql",
+    "query-parameter",
+]
+for term in required_scope_terms:
+    if term not in scope_lower:
+        raise SystemExit(f"scope doc missing exclusion term: {term}")
+
+if roadmap_doc:
+    if not os.path.isfile(roadmap_doc):
+        raise SystemExit(f"roadmap doc not found: {roadmap_doc}")
+    with open(roadmap_doc, encoding="utf-8") as f:
+        roadmap_text = f.read().lower()
+    if "phase 02" not in roadmap_text:
+        raise SystemExit("roadmap doc missing phase 02 context")
+    if "parser_workload_scope.md" not in roadmap_text:
+        raise SystemExit("roadmap doc must reference docs/parser_workload_scope.md")
+    if "fixture" not in roadmap_text:
+        raise SystemExit("roadmap doc must reference fixture-backed coverage")
+
+if validation_doc:
+    if not os.path.isfile(validation_doc):
+        raise SystemExit(f"validation doc not found: {validation_doc}")
+    with open(validation_doc, encoding="utf-8") as f:
+        validation_text = f.read()
+    expected_cmds = [
+        "parser_workload_suite.sh full",
+        "parser_workload_suite.sh audit-signoff",
+        "just smoke-suite",
+        "build //ported_clickhouse:parser_lib",
+    ]
+    for cmd in expected_cmds:
+        if cmd not in validation_text:
+            raise SystemExit(f"validation doc missing required command evidence: {cmd}")
+
+if signoff_path:
+    if not os.path.isfile(signoff_path):
+        raise SystemExit(f"signoff doc not found: {signoff_path}")
+    with open(signoff_path, encoding="utf-8") as f:
+        signoff_text = f.read()
+    if "Approval: `Approved`" not in signoff_text:
+        raise SystemExit("signoff must record final approval status")
+
+print(
+    "audit-docs ok: "
+    f"supported={len(supported)} excluded={len(excluded)} "
+    f"scope={scope_doc}"
+)
 PY
 }
 
@@ -353,6 +457,9 @@ case "${command}" in
     ;;
   list)
     list_manifest
+    ;;
+  audit-docs)
+    audit_docs
     ;;
   reconcile)
     reconcile_core "reconcile"
