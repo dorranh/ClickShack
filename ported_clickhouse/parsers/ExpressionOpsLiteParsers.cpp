@@ -5,6 +5,7 @@
 #include "ported_clickhouse/parsers/ASTFunction.h"
 #include "ported_clickhouse/parsers/ASTIdentifier.h"
 #include "ported_clickhouse/parsers/ASTLiteral.h"
+#include "ported_clickhouse/parsers/ASTWindowDefinitionLite.h"
 #include "ported_clickhouse/parsers/CommonParsers.h"
 #include "ported_clickhouse/parsers/ExpressionElementParsers.h"
 
@@ -78,6 +79,61 @@ ASTPtr makeFunctionNode(const String & name, const ASTs & args)
 }
 
 bool parseExpressionImpl(IParser::Pos & pos, ASTPtr & node, Expected & expected, int min_precedence);
+
+bool parseOverClause(IParser::Pos & pos, ASTPtr & lhs, Expected & expected)
+{
+    if (!isKeyword(pos, "OVER"))
+        return false;
+    ++pos;
+
+    auto window_def = make_intrusive<ASTWindowDefinitionLite>();
+
+    ParserToken open(TokenType::OpeningRoundBracket);
+    if (open.ignore(pos, expected))
+    {
+        const char * body_begin = pos->begin;
+        const char * body_end = body_begin;
+        int depth = 1;
+
+        while (!pos->isEnd())
+        {
+            if (pos->type == TokenType::OpeningRoundBracket)
+                ++depth;
+            else if (pos->type == TokenType::ClosingRoundBracket)
+            {
+                --depth;
+                if (depth == 0)
+                {
+                    body_end = pos->begin;
+                    ++pos;
+                    window_def->body.assign(body_begin, body_end);
+                    break;
+                }
+            }
+            ++pos;
+        }
+
+        if (depth != 0)
+            return false;
+    }
+    else
+    {
+        String window_name;
+        if (!parseIdentifierPath(pos, window_name, expected))
+            return false;
+        window_def->name = window_name;
+        window_def->is_reference = true;
+    }
+
+    auto over_fn = make_intrusive<ASTFunction>();
+    over_fn->name = "over";
+    auto args = make_intrusive<ASTExpressionList>();
+    args->children.push_back(lhs);
+    args->children.push_back(window_def);
+    over_fn->set(over_fn->arguments, args);
+    lhs = over_fn;
+    return true;
+}
 
 bool parseIdentifierPath(IParser::Pos & pos, String & out, Expected & expected)
 {
@@ -233,6 +289,16 @@ bool parsePrimary(IParser::Pos & pos, ASTPtr & node, Expected & expected)
         ++pos;
 
         ASTs args;
+        bool simple_case = false;
+
+        if (!isKeyword(pos, "WHEN"))
+        {
+            ASTPtr case_expr;
+            if (!parseExpressionImpl(pos, case_expr, expected, 1))
+                return false;
+            args.push_back(case_expr);
+            simple_case = true;
+        }
 
         while (isKeyword(pos, "WHEN"))
         {
@@ -267,7 +333,7 @@ bool parsePrimary(IParser::Pos & pos, ASTPtr & node, Expected & expected)
             return false;
         ++pos;
 
-        node = makeFunctionNode("case", args);
+        node = makeFunctionNode(simple_case ? "caseWithExpr" : "case", args);
         return true;
     }
 
@@ -755,6 +821,9 @@ bool parseExpressionImpl(IParser::Pos & pos, ASTPtr & node, Expected & expected,
 
     while (true)
     {
+        if (parseOverClause(pos, lhs, expected))
+            continue;
+
         if (parseSpecialComparison(pos, lhs, expected, min_precedence))
             continue;
 

@@ -10,10 +10,12 @@
 #include <cctype>
 
 #include "ported_clickhouse/parsers/ASTJoinLite.h"
+#include "ported_clickhouse/parsers/ASTFunction.h"
 #include "ported_clickhouse/parsers/ASTOrderByElementLite.h"
 #include "ported_clickhouse/parsers/ASTSelectRichQuery.h"
 #include "ported_clickhouse/parsers/ASTSelectSetLite.h"
 #include "ported_clickhouse/parsers/ASTTableExprLite.h"
+#include "ported_clickhouse/parsers/ASTWindowDefinitionLite.h"
 #include "ported_clickhouse/parsers/IParser.h"
 #include "ported_clickhouse/parsers/ParserSelectRichQuery.h"
 
@@ -128,6 +130,40 @@ void summarizeSource(
     }
 
     source_kinds.push_back("unknown");
+}
+
+void summarizeExpression(
+    const DB::IAST * node,
+    size_t & simple_case_count,
+    size_t & over_count,
+    size_t & over_named_count,
+    size_t & over_inline_count)
+{
+    if (!node)
+        return;
+
+    if (const auto * fn = node->as<DB::ASTFunction>())
+    {
+        if (fn->name == "caseWithExpr")
+            ++simple_case_count;
+        else if (fn->name == "over")
+        {
+            ++over_count;
+            if (fn->arguments && fn->arguments->children.size() >= 2)
+            {
+                if (const auto * window = fn->arguments->children[1] ? fn->arguments->children[1]->as<DB::ASTWindowDefinitionLite>() : nullptr)
+                {
+                    if (window->is_reference)
+                        ++over_named_count;
+                    else
+                        ++over_inline_count;
+                }
+            }
+        }
+    }
+
+    for (const auto & child : node->children)
+        summarizeExpression(child.get(), simple_case_count, over_count, over_named_count, over_inline_count);
 }
 
 std::string readFile(const std::string & path)
@@ -456,6 +492,10 @@ SummaryResult summarizeQuery(const std::string & query)
     size_t order_collate = 0;
     size_t order_fill = 0;
     size_t order_interpolate = 0;
+    size_t simple_case_count = 0;
+    size_t over_count = 0;
+    size_t over_named_count = 0;
+    size_t over_inline_count = 0;
     if (select->distinct_on_expressions)
         distinct_on_count = select->distinct_on_expressions->children.size();
     if (select->order_by_list)
@@ -475,6 +515,8 @@ SummaryResult summarizeQuery(const std::string & query)
                 ++order_interpolate;
         }
     }
+    for (const auto & projection : select->expressions->children)
+        summarizeExpression(projection.get(), simple_case_count, over_count, over_named_count, over_inline_count);
 
     std::ostringstream out;
     out << "projections=" << select->expressions->children.size()
@@ -536,6 +578,13 @@ SummaryResult summarizeQuery(const std::string & query)
         out << " limit_by_value=" << select->limit_by->limit;
         if (select->limit_by->offset_present)
             out << " limit_by_offset_value=" << select->limit_by->offset;
+    }
+    if (simple_case_count > 0 || over_count > 0)
+    {
+        out << " simple_case=" << simple_case_count
+            << " over=" << over_count
+            << " over_named=" << over_named_count
+            << " over_inline=" << over_inline_count;
     }
 
     return {.code = 0, .classification = "ok", .summary = out.str()};

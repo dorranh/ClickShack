@@ -11,10 +11,11 @@ class ASTWindowDefinitionLite : public IAST
 public:
     String name;
     String body;
+    bool is_reference = false;
 
     String getID(char delim) const override
     {
-        return "WindowDefinitionLite" + String(1, delim) + name;
+        return "WindowDefinitionLite" + String(1, delim) + (is_reference ? "ref:" : "def:") + name + "|" + body;
     }
 
     ASTPtr clone() const override
@@ -22,6 +23,7 @@ public:
         auto res = make_intrusive<ASTWindowDefinitionLite>();
         res->name = name;
         res->body = body;
+        res->is_reference = is_reference;
         return res;
     }
 };
