@@ -84,6 +84,17 @@
       "expected_failure_class": "parse_failed"
     },
     {
+      "id": "p0_non_sql_input",
+      "workload_source_id": "EX-001",
+      "path": "excluded/p0_non_sql_input.sql",
+      "priority": "P0",
+      "clause_tags": ["non_sql"],
+      "expected_result_kind": "excluded",
+      "expected_canonical_summary": "",
+      "exclusion_reason": "Non-SQL inputs remain explicitly excluded from the parser workload scope.",
+      "expected_failure_class": "parse_failed"
+    },
+    {
       "id": "p0_mssql_top",
       "workload_source_id": "IW-009",
       "path": "excluded/p0_mssql_top.sql",
