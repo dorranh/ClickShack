@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync --group dev
+      - run: uv sync --group dev --no-install-project
       - run: uv run ruff check clickshack/ tests/
       - run: uv run ruff format --check clickshack/ tests/
       - run: uv run pyright clickshack/
@@ -27,14 +27,15 @@ jobs:
           repository-cache: true
       - name: Build ir_dump and smoke targets
         run: |
-          bazel --config=ci build \
+          bazel build --config=ci \
             //examples/bootstrap:ir_dump \
             //examples/bootstrap:use_parser_smoke \
             //examples/bootstrap:select_lite_smoke
-      - name: Stage ir_dump for pytest
+      - name: Stage ir_dump for uv and pytest
         run: |
-          cp bazel-bin/examples/bootstrap/ir_dump clickshack/_bin/ir_dump
-          chmod +x clickshack/_bin/ir_dump
+          mkdir -p bin
+          cp bazel-bin/examples/bootstrap/ir_dump bin/ir_dump
+          chmod +x bin/ir_dump
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.11"
@@ -80,11 +81,11 @@ jobs:
               curl -fsSL -o /usr/local/bin/bazel \
                 https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${{ matrix.bazelisk-arch }} &&
               chmod +x /usr/local/bin/bazel &&
-              bazel --config=ci build //examples/bootstrap:ir_dump
+              bazel build --config=ci //examples/bootstrap:ir_dump
             "
       - name: Build ir_dump (macOS)
         if: runner.os == 'macOS'
-        run: bazel --config=ci build //examples/bootstrap:ir_dump
+        run: bazel build --config=ci //examples/bootstrap:ir_dump
       - uses: actions/upload-artifact@v4
         with:
           name: ir_dump-${{ matrix.platform }}
