@@ -1,0 +1,24 @@
+clickshack
+Copyright (c) 2026 clickshack contributors
+
+---
+
+This product includes code derived from ClickHouse
+(https://github.com/ClickHouse/ClickHouse),
+licensed under the Apache License, Version 2.0.
+
+  Copyright 2016-2026 ClickHouse, Inc.
+
+The derived code is located in the `ported_clickhouse/` directory.
+The Apache License, Version 2.0 applies to all files in that directory;
+see ported_clickhouse/LICENSE for the full license text.
+
+Modifications made relative to the ClickHouse originals:
+- Include paths rewritten to `ported_clickhouse/...`
+- Dependencies on Boost, ICU, and ClickHouse-internal IO/formatting
+  layers removed or replaced with standard-library equivalents
+- Files pruned to the subset required by the clickshack SELECT dialect parser
+- Some shim types and bridge AST nodes added
+
+For a file-by-file account of what was ported and what was changed,
+see docs/ported_clickhouse_manifest.md.

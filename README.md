@@ -50,3 +50,13 @@ echo "SELECT id FROM users WHERE active = 1" | \
 ```
 
 (Build with `just build-ir` first.)
+
+## License
+
+The `clickshack` Python package and original C++ code are licensed under the
+[MIT License](LICENSE).
+
+The C++ parser in `ported_clickhouse/` is derived from
+[ClickHouse](https://github.com/ClickHouse/ClickHouse) and is licensed under
+the [Apache License 2.0](ported_clickhouse/LICENSE). See [NOTICE](NOTICE) for
+attribution details and a description of modifications.
