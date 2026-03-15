@@ -10,9 +10,9 @@ from clickshack.ir.models import IrQuery, Span
 
 @dataclass
 class LintViolation:
-    rule: str       # rule identifier, e.g. "no-star"
-    message: str    # human-readable description
-    span: Span      # source location from IR node
+    rule: str  # rule identifier, e.g. "no-star"
+    message: str  # human-readable description
+    span: Span  # source location from IR node
 
 
 @runtime_checkable

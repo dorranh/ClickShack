@@ -8,6 +8,7 @@ from clickshack.ir.parser import BinaryNotFoundError
 
 # --- Integration tests (require staged binary at clickshack/_bin/ir_dump) ---
 
+
 def test_parse_simple_select():
     result = parse_sql("SELECT 1")
     assert isinstance(result, IrEnvelope)
@@ -35,6 +36,7 @@ def test_parse_returns_envelope_with_query():
 
 
 # --- Unit test: BinaryNotFoundError when binary is absent ---
+
 
 def test_binary_not_found_error(tmp_path):
     """parse_sql raises BinaryNotFoundError when the binary path does not exist."""

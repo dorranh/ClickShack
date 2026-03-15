@@ -1,4 +1,5 @@
 """SQLGlot adapter: converts IR node tree → sqlglot AST."""
+
 from __future__ import annotations
 
 import sqlglot.expressions as exp
@@ -82,10 +83,19 @@ def expr_to_sqlglot(node: IrExpr) -> exp.Expression:
         left = expr_to_sqlglot(node.left)
         right = expr_to_sqlglot(node.right)
         _op_map = {
-            "=": exp.EQ, "!=": exp.NEQ, "<>": exp.NEQ,
-            "<": exp.LT, "<=": exp.LTE, ">": exp.GT, ">=": exp.GTE,
-            "+": exp.Add, "-": exp.Sub, "*": exp.Mul, "/": exp.Div,
-            "AND": exp.And, "OR": exp.Or,
+            "=": exp.EQ,
+            "!=": exp.NEQ,
+            "<>": exp.NEQ,
+            "<": exp.LT,
+            "<=": exp.LTE,
+            ">": exp.GT,
+            ">=": exp.GTE,
+            "+": exp.Add,
+            "-": exp.Sub,
+            "*": exp.Mul,
+            "/": exp.Div,
+            "AND": exp.And,
+            "OR": exp.Or,
             "||": exp.DPipe,
         }
         cls = _op_map.get(node.op.upper())
@@ -178,16 +188,13 @@ def expr_to_sqlglot(node: IrExpr) -> exp.Expression:
         return exp.Window(this=func)
 
     if isinstance(node, RawNode):
-        raise NotImplementedError(
-            f"expr_to_sqlglot: Raw node not supported (id={node.id!r})"
-        )
+        raise NotImplementedError(f"expr_to_sqlglot: Raw node not supported (id={node.id!r})")
 
-    raise NotImplementedError(
-        f"expr_to_sqlglot: unsupported node type {type(node).__name__}"
-    )
+    raise NotImplementedError(f"expr_to_sqlglot: unsupported node type {type(node).__name__}")
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
+
 
 def _select_to_sqlglot(sel: SelectNode) -> exp.Select:
     projections = [expr_to_sqlglot(p) for p in sel.projections]

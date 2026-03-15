@@ -12,6 +12,7 @@ class Span(BaseModel):
 
 # ── Expression nodes ──────────────────────────────────────────────────────────
 
+
 class LiteralNode(BaseModel):
     type: Literal["Literal"]
     span: Span
@@ -163,6 +164,7 @@ class OverNode(BaseModel):
 
 # ── Table expression nodes ────────────────────────────────────────────────────
 
+
 class TableNode(BaseModel):
     type: Literal["Table"]
     span: Span
@@ -202,6 +204,7 @@ class JoinNode(BaseModel):
 
 # ── Inline window spec ────────────────────────────────────────────────────────
 
+
 class WindowSpecInline(BaseModel):
     name: str | None = None
     is_reference: bool = False
@@ -209,6 +212,7 @@ class WindowSpecInline(BaseModel):
 
 
 # ── Clause types ─────────────────────────────────────────────────────────────
+
 
 class LimitNode(BaseModel):
     type: Literal["Limit"]
@@ -250,6 +254,7 @@ class CteDef(BaseModel):
 
 
 # ── Root nodes ────────────────────────────────────────────────────────────────
+
 
 class ArrayJoinInline(BaseModel):
     left: bool = False
@@ -335,11 +340,33 @@ IrQuery = Annotated[
 
 # Rebuild all models that contain forward references
 for _cls in [
-    CaseBranch, FunctionNode, SubqueryNode, SubquerySourceNode, JoinNode,
-    ArrayJoinInline, CaseNode, InNode, BetweenNode, LikeNode, IsNullNode,
-    LambdaNode, ArrayNode, TupleNode, BinaryOpNode, UnaryOpNode,
-    CastNode, AliasNode, OverNode, WithNode, SelectUnionNode, SelectNode,
-    LimitNode, LimitByNode, OrderByElement, CteDef, TableNode,
+    CaseBranch,
+    FunctionNode,
+    SubqueryNode,
+    SubquerySourceNode,
+    JoinNode,
+    ArrayJoinInline,
+    CaseNode,
+    InNode,
+    BetweenNode,
+    LikeNode,
+    IsNullNode,
+    LambdaNode,
+    ArrayNode,
+    TupleNode,
+    BinaryOpNode,
+    UnaryOpNode,
+    CastNode,
+    AliasNode,
+    OverNode,
+    WithNode,
+    SelectUnionNode,
+    SelectNode,
+    LimitNode,
+    LimitByNode,
+    OrderByElement,
+    CteDef,
+    TableNode,
     TableFunctionNode,
 ]:
     _cls.model_rebuild()
@@ -348,10 +375,12 @@ for _cls in [
 def parse_node(data: dict) -> Any:
     """Parse a single IR expression node dict into the appropriate typed model."""
     from pydantic import TypeAdapter
+
     return TypeAdapter(IrExpr).validate_python(data)
 
 
 # ── Envelope ──────────────────────────────────────────────────────────────────
+
 
 class IrEnvelope(BaseModel):
     ir_version: str

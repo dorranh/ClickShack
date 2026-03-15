@@ -52,8 +52,7 @@ def parse_sql(sql: str) -> IrEnvelope:
             )
     except FileNotFoundError as exc:
         raise BinaryNotFoundError(
-            "ir_dump binary could not be executed. "
-            "Run `just stage-bin` and rebuild the wheel."
+            "ir_dump binary could not be executed. Run `just stage-bin` and rebuild the wheel."
         ) from exc
 
     if result.returncode != 0:
