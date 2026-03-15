@@ -73,3 +73,13 @@ cc_binary(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_binary(
+    name = "ir_dump",
+    srcs = ["ir_dump.cc"],
+    deps = [
+        "//ir:ir_json",
+        "//ported_clickhouse:parser_select_rich_stack",
+    ],
+    visibility = ["//visibility:public"],
+)
