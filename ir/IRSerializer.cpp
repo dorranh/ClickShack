@@ -153,8 +153,241 @@ nlohmann::json IRSerializer::serializeUnion(const IAST * node)
     }
     return result;
 }
-nlohmann::json IRSerializer::serializeExpr(const IAST * n) { return {{"type","Raw"},{"id",n->getID('_')},{"span",span0()}}; }
-nlohmann::json IRSerializer::serializeExprList(const IAST *) { return json::array(); }
+nlohmann::json IRSerializer::serializeExprList(const IAST * node)
+{
+    json arr = json::array();
+    if (!node) return arr;
+    for (const auto & child : node->children)
+        if (child) arr.push_back(serializeExpr(child.get()));
+    return arr;
+}
+
+nlohmann::json IRSerializer::serializeExpr(const IAST * node)
+{
+    if (!node) return nullptr;
+
+    // Literal
+    if (auto * lit = node->as<ASTLiteral>()) {
+        switch (lit->kind) {
+            case ASTLiteral::Kind::Number:
+                return {{"type","Literal"},{"kind","number"},{"value",lit->value},{"span",span0()}};
+            case ASTLiteral::Kind::String:
+                return {{"type","Literal"},{"kind","string"},{"value",lit->value},{"span",span0()}};
+            case ASTLiteral::Kind::Null:
+                return {{"type","Literal"},{"kind","null"},{"span",span0()}};
+        }
+    }
+
+    // Identifier (includes "*" for STAR)
+    if (auto * ident = node->as<ASTIdentifier>()) {
+        const auto & n = ident->name();
+        if (n == "*")
+            return {{"type","Star"},{"span",span0()}};
+        // table.* pattern stored as "table.*"
+        auto dot = n.rfind('.');
+        if (dot != std::string::npos && dot + 1 < n.size() && n[dot + 1] == '*')
+            return {{"type","TableStar"},{"table",n.substr(0, dot)},{"span",span0()}};
+        // qualified column: table.column
+        if (dot != std::string::npos)
+            return {{"type","Column"},{"table",n.substr(0,dot)},{"name",n.substr(dot+1)},{"span",span0()}};
+        return {{"type","Column"},{"name",n},{"span",span0()}};
+    }
+
+    // ASTFunction covers: regular calls, CAST, CASE, IN, BETWEEN, LIKE, subquery, array, tuple, etc.
+    if (auto * fn = node->as<ASTFunction>()) {
+        const auto & nm = fn->name;
+
+        // Subquery wrapper: subquery(select_node)
+        if (nm == "subquery") {
+            if (fn->arguments && !fn->arguments->children.empty())
+                return {{"type","Subquery"},{"query",serializeNode(fn->arguments->children[0].get())},{"span",span0()}};
+            return {{"type","Subquery"},{"query",nullptr},{"span",span0()}};
+        }
+
+        // Array literal: array(e1, e2, ...)
+        if (nm == "array") {
+            json elems = json::array();
+            if (fn->arguments)
+                for (const auto & ch : fn->arguments->children)
+                    if (ch) elems.push_back(serializeExpr(ch.get()));
+            return {{"type","Array"},{"elements",std::move(elems)},{"span",span0()}};
+        }
+
+        // Tuple literal: tuple(e1, e2, ...)
+        if (nm == "tuple") {
+            json elems = json::array();
+            if (fn->arguments)
+                for (const auto & ch : fn->arguments->children)
+                    if (ch) elems.push_back(serializeExpr(ch.get()));
+            return {{"type","Tuple"},{"elements",std::move(elems)},{"span",span0()}};
+        }
+
+        // CAST(expr, type_identifier)
+        if (nm == "CAST") {
+            json cast_expr = nullptr;
+            std::string cast_type;
+            if (fn->arguments && fn->arguments->children.size() >= 1)
+                cast_expr = serializeExpr(fn->arguments->children[0].get());
+            if (fn->arguments && fn->arguments->children.size() >= 2) {
+                auto * type_id = fn->arguments->children[1]
+                    ? fn->arguments->children[1]->as<ASTIdentifier>() : nullptr;
+                cast_type = type_id ? type_id->name() : fn->arguments->children[1]->getID('_');
+            }
+            return {{"type","Cast"},{"expr",cast_expr},{"cast_type",cast_type},{"span",span0()}};
+        }
+
+        // IS NULL / IS NOT NULL -> isNull / isNotNull
+        if (nm == "isNull" || nm == "isNotNull") {
+            json inner = nullptr;
+            if (fn->arguments && !fn->arguments->children.empty())
+                inner = serializeExpr(fn->arguments->children[0].get());
+            return {{"type","IsNull"},{"negated",nm == "isNotNull"},{"expr",inner},{"span",span0()}};
+        }
+
+        // IN / NOT IN -> in / notIn
+        if (nm == "in" || nm == "notIn") {
+            json expr_j = nullptr;
+            json list_j = json::array();
+            if (fn->arguments && fn->arguments->children.size() >= 1)
+                expr_j = serializeExpr(fn->arguments->children[0].get());
+            if (fn->arguments && fn->arguments->children.size() >= 2 && fn->arguments->children[1]) {
+                // The second argument may be an ASTExpressionList or a subquery wrapper
+                auto * ch = fn->arguments->children[1].get();
+                if (auto * lst = ch->as<ASTExpressionList>())
+                    list_j = serializeExprList(lst);
+                else
+                    // subquery in IN clause — wrap as single-element array for consistency
+                    list_j = json::array({serializeExpr(ch)});
+            }
+            return {{"type","In"},{"negated",nm == "notIn"},{"expr",expr_j},{"list",list_j},{"span",span0()}};
+        }
+
+        // BETWEEN / NOT BETWEEN -> between / notBetween
+        if (nm == "between" || nm == "notBetween") {
+            json expr_j = nullptr, low_j = nullptr, high_j = nullptr;
+            if (fn->arguments) {
+                auto & ch = fn->arguments->children;
+                if (ch.size() >= 1) expr_j = serializeExpr(ch[0].get());
+                if (ch.size() >= 2) low_j  = serializeExpr(ch[1].get());
+                if (ch.size() >= 3) high_j = serializeExpr(ch[2].get());
+            }
+            return {{"type","Between"},{"negated",nm == "notBetween"},
+                    {"expr",expr_j},{"low",low_j},{"high",high_j},{"span",span0()}};
+        }
+
+        // LIKE / NOT LIKE / ILIKE / NOT ILIKE
+        if (nm == "like" || nm == "notLike" || nm == "iLike" || nm == "notILike"
+            || nm == "likeEscape" || nm == "notLikeEscape"
+            || nm == "iLikeEscape" || nm == "notILikeEscape") {
+            bool neg   = nm.find("not") == 0 || nm.find("Not") != std::string::npos;
+            bool ilike = nm.find("iLike") != std::string::npos || nm.find("ILike") != std::string::npos;
+            json expr_j = nullptr, pattern_j = nullptr;
+            if (fn->arguments) {
+                auto & ch = fn->arguments->children;
+                if (ch.size() >= 1) expr_j    = serializeExpr(ch[0].get());
+                if (ch.size() >= 2) pattern_j = serializeExpr(ch[1].get());
+            }
+            return {{"type","Like"},{"negated",neg},{"ilike",ilike},
+                    {"expr",expr_j},{"pattern",pattern_j},{"span",span0()}};
+        }
+
+        // CASE: case(when, then, ..., else?) or caseWithExpr(subject, when, then, ..., else?)
+        if (nm == "case" || nm == "caseWithExpr") {
+            json args_j = json::array();
+            if (fn->arguments)
+                for (const auto & ch : fn->arguments->children)
+                    if (ch) args_j.push_back(serializeExpr(ch.get()));
+            return {{"type","Function"},{"name","CASE"},{"args",std::move(args_j)},{"span",span0()}};
+        }
+
+        // Lambda: lambda(params_list, body)  — produced by -> operator in some dialects.
+        // In this parser -> is a binary op on ASTExpressionOpsLite, so handled below.
+
+        // over(fn, window_spec)
+        if (nm == "over") {
+            json fn_j = nullptr, win_j = nullptr;
+            if (fn->arguments) {
+                auto & ch = fn->arguments->children;
+                if (ch.size() >= 1) fn_j  = serializeExpr(ch[0].get());
+                if (ch.size() >= 2) win_j = serializeExpr(ch[1].get());
+            }
+            return {{"type","Over"},{"function",fn_j},{"window",win_j},{"span",span0()}};
+        }
+
+        // alias(expr, name_identifier)
+        if (nm == "alias") {
+            json expr_j = nullptr;
+            std::string alias_name;
+            if (fn->arguments) {
+                auto & ch = fn->arguments->children;
+                if (ch.size() >= 1) expr_j = serializeExpr(ch[0].get());
+                if (ch.size() >= 2 && ch[1]) {
+                    auto * aid = ch[1]->as<ASTIdentifier>();
+                    alias_name = aid ? aid->name() : ch[1]->getID('_');
+                }
+            }
+            return {{"type","Alias"},{"expr",expr_j},{"alias",alias_name},{"span",span0()}};
+        }
+
+        // with_subquery(name_identifier, query) — used in CTE with_expressions
+        if (nm == "with_subquery") {
+            // Handled in serializeSelect CTE loop; if encountered here fall through to generic Function.
+        }
+
+        // Generic function call
+        json args_j = json::array();
+        if (fn->arguments)
+            for (const auto & ch : fn->arguments->children)
+                if (ch) args_j.push_back(serializeExpr(ch.get()));
+        return {{"type","Function"},{"name",nm},{"args",std::move(args_j)},{"span",span0()}};
+    }
+
+    // ASTExpressionOpsLite — binary/unary arithmetic, comparison, logical, ::, ->
+    if (auto * ops = node->as<ASTExpressionOpsLite>()) {
+        if (ops->is_unary)
+            return {{"type","UnaryOp"},{"op",ops->op},
+                    {"expr",serializeExpr(ops->right)},{"span",span0()}};
+
+        // :: (double colon cast) — right side is typically an identifier (type name)
+        if (ops->op == "::") {
+            std::string cast_type;
+            if (ops->right) {
+                if (auto * tid = ops->right->as<ASTIdentifier>())
+                    cast_type = tid->name();
+                else
+                    cast_type = ops->right->getID('_');
+            }
+            return {{"type","Cast"},{"expr",serializeExpr(ops->left)},
+                    {"cast_type",cast_type},{"span",span0()}};
+        }
+
+        // -> (lambda)
+        if (ops->op == "->")
+            return {{"type","Lambda"},
+                    {"params",ops->left ? serializeExprList(ops->left) : json::array()},
+                    {"body",serializeExpr(ops->right)},{"span",span0()}};
+
+        // Default: binary operator
+        return {{"type","BinaryOp"},{"op",ops->op},
+                {"left",serializeExpr(ops->left)},{"right",serializeExpr(ops->right)},
+                {"span",span0()}};
+    }
+
+    // Bare ASTExpressionList (e.g. when a list appears as an expression)
+    if (auto * list = node->as<ASTExpressionList>()) {
+        json arr = json::array();
+        for (const auto & ch : list->children)
+            if (ch) arr.push_back(serializeExpr(ch.get()));
+        return arr;
+    }
+
+    // Inline subquery (ASTSelectRichQuery or ASTSelectSetLite used as an expression)
+    if (node->as<ASTSelectRichQuery>() || node->as<ASTSelectSetLite>())
+        return {{"type","Subquery"},{"query",serializeNode(node)},{"span",span0()}};
+
+    // Fallback
+    return {{"type","Raw"},{"id",node->getID('_')},{"span",span0()}};
+}
 nlohmann::json IRSerializer::serializeTableExpr(const IAST *) { return {{"type","Raw"},{"span",span0()}}; }
 nlohmann::json IRSerializer::serializeOrderByList(const IAST *) { return json::array(); }
 nlohmann::json IRSerializer::serializeWindowList(const IAST *) { return json::array(); }
