@@ -27,3 +27,6 @@ CMakeUserPresets.json
 tmp/clickhouse-patching
 .worktrees/
 .env
+
+bin/
+clickshack/_bin/ir_dump
