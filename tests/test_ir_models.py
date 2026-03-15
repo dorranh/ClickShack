@@ -1,5 +1,4 @@
-import pytest
-from clickshack.ir.models import AliasNode, IrEnvelope, OverNode, SelectNode, LiteralNode, ColumnNode, parse_node
+from clickshack.ir.models import AliasNode, IrEnvelope, OverNode, SelectNode, parse_node
 
 
 def test_envelope_parses_simple_select():

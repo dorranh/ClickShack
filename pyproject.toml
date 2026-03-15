@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=70"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "clickshack"
@@ -11,9 +11,21 @@ dependencies = [
     "sqlglot>=25.0",
 ]
 
-[project.optional-dependencies]
-dev = ["pytest>=8.0"]
+[dependency-groups]
+dev = ["pytest>=8.0", "pyright>=1.1", "ruff>=0.4"]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["clickshack*"]
+[tool.hatch.build.targets.wheel]
+packages = ["clickshack"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]  # pycodestyle errors, pyflakes, isort, pyupgrade
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"

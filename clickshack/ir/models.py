@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Optional, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -16,14 +16,14 @@ class LiteralNode(BaseModel):
     type: Literal["Literal"]
     span: Span
     kind: Literal["number", "string", "null"]
-    value: Optional[str] = None
+    value: str | None = None
 
 
 class ColumnNode(BaseModel):
     type: Literal["Column"]
     span: Span
     name: str
-    table: Optional[str] = None
+    table: str | None = None
 
 
 class StarNode(BaseModel):
@@ -42,7 +42,7 @@ class FunctionNode(BaseModel):
     span: Span
     name: str
     args: list[IrExpr] = Field(default_factory=list)
-    over: Optional[WindowSpecInline] = None
+    over: WindowSpecInline | None = None
 
 
 class BinaryOpNode(BaseModel):
@@ -68,9 +68,9 @@ class CaseBranch(BaseModel):
 class CaseNode(BaseModel):
     type: Literal["Case"]
     span: Span
-    operand: Optional[IrExpr] = None
+    operand: IrExpr | None = None
     branches: list[CaseBranch] = Field(default_factory=list)
-    else_expr: Optional[IrExpr] = Field(None, alias="else")
+    else_expr: IrExpr | None = Field(None, alias="else")
     model_config = {"populate_by_name": True}
 
 
@@ -86,8 +86,8 @@ class InNode(BaseModel):
     span: Span
     negated: bool
     expr: IrExpr
-    list: Optional[list[IrExpr]] = None
-    subquery: Optional[SubqueryNode] = None
+    list: list[IrExpr] | None = None
+    subquery: SubqueryNode | None = None
 
 
 class BetweenNode(BaseModel):
@@ -106,7 +106,7 @@ class LikeNode(BaseModel):
     ilike: bool
     expr: IrExpr
     pattern: IrExpr
-    escape: Optional[IrExpr] = None
+    escape: IrExpr | None = None
 
 
 class IsNullNode(BaseModel):
@@ -144,7 +144,7 @@ class SubqueryNode(BaseModel):
 class RawNode(BaseModel):
     type: Literal["Raw"]
     span: Span
-    id: Optional[str] = None
+    id: str | None = None
 
 
 class AliasNode(BaseModel):
@@ -158,7 +158,7 @@ class OverNode(BaseModel):
     type: Literal["Over"]
     span: Span
     function: IrExpr
-    window: Optional[IrExpr] = None
+    window: IrExpr | None = None
 
 
 # ── Table expression nodes ────────────────────────────────────────────────────
@@ -167,45 +167,45 @@ class TableNode(BaseModel):
     type: Literal["Table"]
     span: Span
     name: str
-    database: Optional[str] = None
-    alias: Optional[str] = None
-    final: Optional[bool] = None
-    sample: Optional[IrExpr] = None
-    sample_offset: Optional[IrExpr] = None
+    database: str | None = None
+    alias: str | None = None
+    final: bool | None = None
+    sample: IrExpr | None = None
+    sample_offset: IrExpr | None = None
 
 
 class TableFunctionNode(BaseModel):
     type: Literal["TableFunction"]
     span: Span
     function: FunctionNode
-    alias: Optional[str] = None
+    alias: str | None = None
 
 
 class SubquerySourceNode(BaseModel):
     type: Literal["SubquerySource"]
     span: Span
     query: IrQuery
-    alias: Optional[str] = None
+    alias: str | None = None
 
 
 class JoinNode(BaseModel):
     type: Literal["Join"]
     span: Span
     kind: str
-    locality: Optional[str] = None
-    strictness: Optional[str] = None
+    locality: str | None = None
+    strictness: str | None = None
     left: IrTableExpr
     right: IrTableExpr
-    on: Optional[IrExpr] = None
-    using: Optional[list[IrExpr]] = None
+    on: IrExpr | None = None
+    using: list[IrExpr] | None = None
 
 
 # ── Inline window spec ────────────────────────────────────────────────────────
 
 class WindowSpecInline(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None
     is_reference: bool = False
-    body: Optional[str] = None
+    body: str | None = None
 
 
 # ── Clause types ─────────────────────────────────────────────────────────────
@@ -213,40 +213,40 @@ class WindowSpecInline(BaseModel):
 class LimitNode(BaseModel):
     type: Literal["Limit"]
     span: Span
-    count: Optional[IrExpr] = None
-    offset: Optional[IrExpr] = None
+    count: IrExpr | None = None
+    offset: IrExpr | None = None
     with_ties: bool = False
 
 
 class LimitByNode(BaseModel):
     type: Literal["LimitBy"]
     span: Span
-    count: Optional[IrExpr] = None
-    offset: Optional[IrExpr] = None
-    by: Optional[Any] = None
+    count: IrExpr | None = None
+    offset: IrExpr | None = None
+    by: Any | None = None
 
 
 class OrderByElement(BaseModel):
     span: Span
     expr: IrExpr
     direction: Literal["ASC", "DESC"] = "ASC"
-    nulls: Optional[Literal["FIRST", "LAST"]] = None
-    collate: Optional[str] = None
-    with_fill: Optional[dict[str, Any]] = None
-    interpolate: Optional[list[IrExpr]] = None
+    nulls: Literal["FIRST", "LAST"] | None = None
+    collate: str | None = None
+    with_fill: dict[str, Any] | None = None
+    interpolate: list[IrExpr] | None = None
 
 
 class WindowDefNode(BaseModel):
     span: Span
-    name: Optional[str] = None
+    name: str | None = None
     is_reference: bool = False
-    body: Optional[str] = None
+    body: str | None = None
 
 
 class CteDef(BaseModel):
-    name: Optional[str] = None
-    query: Optional[IrQuery] = None
-    expr: Optional[IrExpr] = None
+    name: str | None = None
+    query: IrQuery | None = None
+    expr: IrExpr | None = None
 
 
 # ── Root nodes ────────────────────────────────────────────────────────────────
@@ -261,22 +261,22 @@ class SelectNode(BaseModel):
     span: Span
     distinct: bool = False
     all: bool = False
-    distinct_on: Optional[list[IrExpr]] = None
-    top: Optional[dict[str, Any]] = None
+    distinct_on: list[IrExpr] | None = None
+    top: dict[str, Any] | None = None
     projections: list[IrExpr] = Field(default_factory=list)
-    from_: Optional[IrTableExpr] = Field(None, alias="from")
-    array_join: Optional[ArrayJoinInline] = None
-    prewhere: Optional[IrExpr] = None
-    where: Optional[IrExpr] = None
-    group_by: Optional[dict[str, Any]] = None
-    having: Optional[IrExpr] = None
-    window: Optional[list[WindowDefNode]] = None
-    qualify: Optional[IrExpr] = None
-    order_by: Optional[Any] = None
-    limit: Optional[LimitNode] = None
-    limit_by: Optional[LimitByNode] = None
-    settings: Optional[list[IrExpr]] = None
-    format: Optional[str] = None
+    from_: IrTableExpr | None = Field(None, alias="from")
+    array_join: ArrayJoinInline | None = None
+    prewhere: IrExpr | None = None
+    where: IrExpr | None = None
+    group_by: dict[str, Any] | None = None
+    having: IrExpr | None = None
+    window: list[WindowDefNode] | None = None
+    qualify: IrExpr | None = None
+    order_by: Any | None = None
+    limit: LimitNode | None = None
+    limit_by: LimitByNode | None = None
+    settings: list[IrExpr] | None = None
+    format: str | None = None
     model_config = {"populate_by_name": True}
 
 
@@ -300,23 +300,36 @@ class WithNode(BaseModel):
 # ── Discriminated unions ──────────────────────────────────────────────────────
 
 IrExpr = Annotated[
-    Union[
-        LiteralNode, ColumnNode, StarNode, TableStarNode,
-        FunctionNode, BinaryOpNode, UnaryOpNode, CaseNode,
-        CastNode, InNode, BetweenNode, LikeNode, IsNullNode,
-        LambdaNode, ArrayNode, TupleNode, SubqueryNode,
-        AliasNode, OverNode, RawNode,
-    ],
+    LiteralNode
+    | ColumnNode
+    | StarNode
+    | TableStarNode
+    | FunctionNode
+    | BinaryOpNode
+    | UnaryOpNode
+    | CaseNode
+    | CastNode
+    | InNode
+    | BetweenNode
+    | LikeNode
+    | IsNullNode
+    | LambdaNode
+    | ArrayNode
+    | TupleNode
+    | SubqueryNode
+    | AliasNode
+    | OverNode
+    | RawNode,
     Field(discriminator="type"),
 ]
 
 IrTableExpr = Annotated[
-    Union[TableNode, TableFunctionNode, SubquerySourceNode, JoinNode],
+    TableNode | TableFunctionNode | SubquerySourceNode | JoinNode,
     Field(discriminator="type"),
 ]
 
 IrQuery = Annotated[
-    Union[WithNode, SelectUnionNode, SelectNode],
+    WithNode | SelectUnionNode | SelectNode,
     Field(discriminator="type"),
 ]
 

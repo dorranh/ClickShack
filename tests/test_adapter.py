@@ -1,8 +1,8 @@
 import pytest
 import sqlglot.expressions as exp
 
+from clickshack.ir.adapter import expr_to_sqlglot, to_sqlglot
 from clickshack.ir.models import IrEnvelope
-from clickshack.ir.adapter import to_sqlglot, expr_to_sqlglot
 
 
 def _ir(raw: dict):

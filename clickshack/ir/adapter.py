@@ -1,17 +1,39 @@
 """SQLGlot adapter: converts IR node tree → sqlglot AST."""
 from __future__ import annotations
 
-from typing import Union
-
 import sqlglot.expressions as exp
 
 from clickshack.ir.models import (
-    AliasNode, ArrayNode, BetweenNode, BinaryOpNode, CaseNode, CastNode,
-    ColumnNode, FunctionNode, InNode, IrExpr, IrQuery, IrTableExpr,
-    IsNullNode, JoinNode, LambdaNode, LikeNode, LiteralNode,
-    OverNode, RawNode, SelectNode, SelectUnionNode, StarNode, SubqueryNode,
-    SubquerySourceNode, TableFunctionNode, TableNode, TableStarNode,
-    TupleNode, UnaryOpNode, WithNode,
+    AliasNode,
+    ArrayNode,
+    BetweenNode,
+    BinaryOpNode,
+    CaseNode,
+    CastNode,
+    ColumnNode,
+    FunctionNode,
+    InNode,
+    IrExpr,
+    IrQuery,
+    IrTableExpr,
+    IsNullNode,
+    JoinNode,
+    LambdaNode,
+    LikeNode,
+    LiteralNode,
+    OverNode,
+    RawNode,
+    SelectNode,
+    SelectUnionNode,
+    StarNode,
+    SubqueryNode,
+    SubquerySourceNode,
+    TableFunctionNode,
+    TableNode,
+    TableStarNode,
+    TupleNode,
+    UnaryOpNode,
+    WithNode,
 )
 
 
@@ -151,7 +173,9 @@ def expr_to_sqlglot(node: IrExpr) -> exp.Expression:
     if isinstance(node, OverNode):
         func = expr_to_sqlglot(node.function)
         window = expr_to_sqlglot(node.window) if node.window is not None else None
-        return exp.Window(this=func, partition_by=[], order=None) if window is None else exp.Window(this=func)
+        if window is None:
+            return exp.Window(this=func, partition_by=[], order=None)
+        return exp.Window(this=func)
 
     if isinstance(node, RawNode):
         raise NotImplementedError(

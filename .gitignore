@@ -1,4 +1,16 @@
 /bazel-*
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+uv.lock
 
 CMakeLists.txt.user
 CMakeCache.txt
@@ -14,3 +26,4 @@ _deps
 CMakeUserPresets.json
 tmp/clickhouse-patching
 .worktrees/
+.env

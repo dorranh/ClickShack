@@ -1,6 +1,5 @@
-import pytest
-from clickshack.ir.models import IrEnvelope, StarNode, Span
-from clickshack.linter.base import LintRule, LintRunner, LintViolation
+from clickshack.ir.models import IrEnvelope, StarNode
+from clickshack.linter.base import LintRunner, LintViolation
 
 
 class NoStarRule:

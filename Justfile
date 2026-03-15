@@ -4,6 +4,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 bazel := "bazel --batch --output_user_root=/tmp/bazel-root"
 main_targets := "//examples/bootstrap:hello_clickshack"
 all_targets := "//examples/bootstrap:hello_clickshack //examples/bootstrap:deps_probe"
+ir_targets := "//ir:ir_json //examples/bootstrap:ir_dump"
 
 # Build the primary Clickshack binary target.
 build:
@@ -43,6 +44,33 @@ build-hello:
 # Build only the dependency probe binary.
 build-deps-probe:
     {{bazel}} build //examples/bootstrap:deps_probe
+
+# Build the IR JSON serializer and ir_dump binary.
+build-ir:
+    {{bazel}} build {{ir_targets}}
+
+# Install Python dependencies (creates .venv automatically).
+sync:
+    uv sync --group dev
+
+# Lint with ruff.
+lint:
+    uv run ruff check clickshack/ tests/
+
+# Format with ruff.
+fmt:
+    uv run ruff format clickshack/ tests/
+
+# Type-check with pyright.
+typecheck:
+    uv run pyright clickshack/
+
+# Run all checks (lint + typecheck). Does not auto-format.
+check: lint typecheck
+
+# Run Python tests.
+test-python:
+    uv run pytest tests/ -v
 
 # Remove Bazel outputs while keeping external downloads/cache metadata.
 clean:
