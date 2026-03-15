@@ -2,25 +2,23 @@
 
 A collection of ClickHouse query parsing and analysis tools built on a rickety, hollowed-out version of ClickHouse.
 
-## Description
-
-One of the challenges of building tooling around SQL is that some dialects can provide a large set of unique features beyond
-standard ANSI SQL. ClickHouse is one of these, providing a rich SQL dialect that can prove to be difficult for generic tooling to
+One of the challenges of building tooling around SQL is that some dialects provide a large set of features beyond
+standard ANSI SQL. ClickHouse is one of these, providing a rich SQL dialect that is difficult for generic tooling to
 keep up with.
 
-This project is an attempt at building more reliable tooling for ClickHouse queries by providing abstractions over the actual
+This project builds more reliable tooling for ClickHouse queries by providing abstractions over the actual
 ClickHouse parser.
 
-> Note: Parsing is currently limited to `SELECT` queries, though other query types are on the roadmap.
+> Note: Parsing is currently limited to `SELECT` queries, other query types are on the roadmap.
 
 ## Usage
 
 The primary entrypoint is a Python package, `clickshack`. Features include:
 
 - A near like-for-like port of the actual ClickHouse SQL parser (currently supports version `26.2`)
-- Converters for integrating with SQLGlot - parse queries with `clickshack` and manipulate them with SQLGlot's growing library of SQL utilities.
+- Converters for integrating with SQLGlot — parse with `clickshack`, then reach for SQLGlot's growing library of SQL utilities.
 - (Experimental) - A minimal Python library for writing custom SQL linting rules.
-  - Note: I am not entirely sure where this one is headed, but it might prove to be a useful counterpart to something like sqlcheck for ClickHouse.
+  - Note: I am not entirely sure where this one is headed, but it might make a useful counterpart to something like sqlcheck for ClickHouse.
 
 Install from PyPI with:
 
@@ -41,7 +39,6 @@ print(envelope.query)       # SelectNode(...)
 Integrate with SQLGlot:
 
 ```python
-import sqlglot.expressions as exp
 from sqlglot.lineage import lineage
 from clickshack import parse_sql
 from clickshack.ir.adapter import to_sqlglot
