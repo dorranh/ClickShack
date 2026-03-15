@@ -256,18 +256,28 @@ bool parseExpressionListInParens(IParser::Pos & pos, ASTPtr & node, Expected & e
 
 bool parseSubqueryInParens(IParser::Pos & pos, ASTPtr & node, Expected & expected)
 {
+    IParser::Pos begin = pos;
     ParserToken open(TokenType::OpeningRoundBracket);
     ParserToken close(TokenType::ClosingRoundBracket);
     if (!open.ignore(pos, expected))
         return false;
     if (!(isKeyword(pos, "SELECT") || isKeyword(pos, "WITH")))
+    {
+        pos = begin;
         return false;
+    }
 
     ASTPtr subquery;
     if (!parseNestedSelectRichQuery(pos, subquery, expected))
+    {
+        pos = begin;
         return false;
+    }
     if (!close.ignore(pos, expected))
+    {
+        pos = begin;
         return false;
+    }
 
     ASTs args;
     args.push_back(subquery);
