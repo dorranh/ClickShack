@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --group dev
+      - run: uv run ruff check clickshack/ tests/
+      - run: uv run ruff format --check clickshack/ tests/
+      - run: uv run pyright clickshack/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.9.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ runner.os }}
+          repository-cache: true
+      - name: Build ir_dump and smoke targets
+        run: |
+          bazel --config=ci build \
+            //examples/bootstrap:ir_dump \
+            //examples/bootstrap:use_parser_smoke \
+            //examples/bootstrap:select_lite_smoke
+      - name: Stage ir_dump for pytest
+        run: |
+          cp bazel-bin/examples/bootstrap/ir_dump clickshack/_bin/ir_dump
+          chmod +x clickshack/_bin/ir_dump
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --group dev
+      - run: uv run pytest tests/ -v
+      - run: ./tools/parser_smoke_suite.sh --skip-build quick
+
+  build-binary:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            docker-image: quay.io/pypa/manylinux_2_28_x86_64
+            bazelisk-arch: amd64
+          - platform: linux-aarch64
+            runner: ubuntu-latest
+            docker-image: quay.io/pypa/manylinux_2_28_aarch64
+            bazelisk-arch: arm64
+          - platform: macos-arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        if: matrix.platform == 'linux-aarch64'
+        uses: docker/setup-qemu-action@v3
+      - uses: bazel-contrib/setup-bazel@0.9.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ matrix.platform }}
+          repository-cache: true
+      - name: Build ir_dump (Linux, manylinux_2_28)
+        if: runner.os == 'Linux'
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -v "$HOME/.cache/bazel:/root/.cache/bazel" \
+            -w /work \
+            "${{ matrix.docker-image }}" \
+            /bin/bash -c "
+              curl -fsSL -o /usr/local/bin/bazel \
+                https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${{ matrix.bazelisk-arch }} &&
+              chmod +x /usr/local/bin/bazel &&
+              bazel --config=ci build //examples/bootstrap:ir_dump
+            "
+      - name: Build ir_dump (macOS)
+        if: runner.os == 'macOS'
+        run: bazel --config=ci build //examples/bootstrap:ir_dump
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ir_dump-${{ matrix.platform }}
+          path: bazel-bin/examples/bootstrap/ir_dump
+
+  build-wheel:
+    needs: build-binary
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+          - platform: linux-aarch64
+            runner: ubuntu-latest
+          - platform: macos-arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        if: matrix.platform == 'linux-aarch64'
+        uses: docker/setup-qemu-action@v3
+      - name: Create binary staging directory
+        run: mkdir -p bin
+      - uses: actions/download-artifact@v4
+        with:
+          name: ir_dump-${{ matrix.platform }}
+          path: bin
+      - run: chmod +x bin/ir_dump
+      - uses: pypa/cibuildwheel@v2.22.0
+        env:
+          CIBW_ARCHS_LINUX: ${{ matrix.platform == 'linux-aarch64' && 'aarch64' || 'x86_64' }}
+          CIBW_ARCHS_MACOS: arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform }}
+          path: wheelhouse/*.whl
