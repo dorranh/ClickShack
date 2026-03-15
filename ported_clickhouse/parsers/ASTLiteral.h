@@ -15,6 +15,7 @@ public:
     {
         Number,
         String,
+        Null,
     };
 
     ASTLiteral(Kind kind_, String value_)
@@ -28,6 +29,8 @@ public:
 
     String getID(char delim) const override
     {
+        if (kind == Kind::Null)
+            return "Literal" + String(1, delim) + "NULL";
         return "Literal" + String(1, delim) + value;
     }
 

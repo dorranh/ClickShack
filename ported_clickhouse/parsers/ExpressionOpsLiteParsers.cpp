@@ -456,7 +456,7 @@ bool parsePrimary(IParser::Pos & pos, ASTPtr & node, Expected & expected)
 
     if (isKeyword(pos, "NULL"))
     {
-        node = make_intrusive<ASTLiteral>(ASTLiteral::Kind::String, "NULL");
+        node = make_intrusive<ASTLiteral>(ASTLiteral::Kind::Null, String{});
         ++pos;
         return true;
     }
