@@ -8,3 +8,9 @@ build --repo_env=CXX=cc_no_lld.sh
 # Optional opt-in wrapper for sanitizer experiments.
 build:sanitize_wrapper --repo_env=CC=./tools/clang_sanitize_fuse_ld.sh
 build:sanitize_wrapper --repo_env=CXX=./tools/clang_sanitize_fuse_ld.sh
+
+# CI overrides: use system PATH and plain compiler names.
+# cc_no_lld.sh is a local macOS workaround and is not available on CI runners.
+build:ci --repo_env=PATH=/usr/local/bin:/usr/bin:/bin
+build:ci --repo_env=CC=cc
+build:ci --repo_env=CXX=c++
