@@ -63,3 +63,20 @@ def test_union():
     }})
     result = to_sqlglot(query)
     assert isinstance(result, exp.Union)
+
+
+def test_lineage_column_source():
+    from sqlglot.lineage import lineage
+    query = _ir({"ir_version": "1", "query": {
+        "type": "Select", "span": {"start": 0, "end": 30},
+        "projections": [
+            {"type": "Column", "name": "id",   "span": {"start": 7, "end": 9}},
+            {"type": "Column", "name": "name", "span": {"start": 11, "end": 15}},
+        ],
+        "from": {"type": "Table", "name": "users", "span": {"start": 21, "end": 26}},
+    }})
+    result = to_sqlglot(query)
+    node = lineage("name", result)
+    names = [n.name for n in node.walk()]
+    assert "name" in names
+    assert any("users" in s for s in names)
