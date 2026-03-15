@@ -6,10 +6,10 @@ from typing import Union
 import sqlglot.expressions as exp
 
 from clickshack.ir.models import (
-    ArrayNode, BetweenNode, BinaryOpNode, CaseNode, CastNode,
+    AliasNode, ArrayNode, BetweenNode, BinaryOpNode, CaseNode, CastNode,
     ColumnNode, FunctionNode, InNode, IrExpr, IrQuery, IrTableExpr,
     IsNullNode, JoinNode, LambdaNode, LikeNode, LiteralNode,
-    RawNode, SelectNode, SelectUnionNode, StarNode, SubqueryNode,
+    OverNode, RawNode, SelectNode, SelectUnionNode, StarNode, SubqueryNode,
     SubquerySourceNode, TableFunctionNode, TableNode, TableStarNode,
     TupleNode, UnaryOpNode, WithNode,
 )
@@ -142,6 +142,17 @@ def expr_to_sqlglot(node: IrExpr) -> exp.Expression:
             default=default,
         )
 
+    if isinstance(node, AliasNode):
+        return exp.Alias(
+            this=expr_to_sqlglot(node.expr),
+            alias=exp.Identifier(this=node.alias),
+        )
+
+    if isinstance(node, OverNode):
+        func = expr_to_sqlglot(node.function)
+        window = expr_to_sqlglot(node.window) if node.window is not None else None
+        return exp.Window(this=func, partition_by=[], order=None) if window is None else exp.Window(this=func)
+
     if isinstance(node, RawNode):
         raise NotImplementedError(
             f"expr_to_sqlglot: Raw node not supported (id={node.id!r})"
@@ -215,11 +226,17 @@ def _union_to_sqlglot(node: SelectUnionNode) -> exp.Expression:
 
 def _with_to_sqlglot(node: WithNode) -> exp.Expression:
     body = to_sqlglot(node.body)
-    ctes = [
-        exp.CTE(
-            this=to_sqlglot(cte.query),
-            alias=exp.TableAlias(this=exp.Identifier(this=cte.name)),
-        )
-        for cte in node.ctes
-    ]
+    ctes = []
+    for cte in node.ctes:
+        if cte.name is not None and cte.query is not None:
+            ctes.append(
+                exp.CTE(
+                    this=to_sqlglot(cte.query),
+                    alias=exp.TableAlias(this=exp.Identifier(this=cte.name)),
+                )
+            )
+        elif cte.expr is not None:
+            # Bare-expression WITH item: not representable as a standard CTE,
+            # skip silently (ClickHouse-specific extension).
+            pass
     return exp.With(expressions=ctes, this=body)

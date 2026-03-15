@@ -175,6 +175,8 @@ nlohmann::json IRSerializer::serializeExpr(const IAST * node)
                 return {{"type","Literal"},{"kind","string"},{"value",lit->value},{"span",span0()}};
             case ASTLiteral::Kind::Null:
                 return {{"type","Literal"},{"kind","null"},{"span",span0()}};
+            default:
+                throw std::runtime_error("IRSerializer: unknown ASTLiteral::Kind");
         }
     }
 

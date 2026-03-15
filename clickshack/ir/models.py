@@ -147,6 +147,20 @@ class RawNode(BaseModel):
     id: Optional[str] = None
 
 
+class AliasNode(BaseModel):
+    type: Literal["Alias"]
+    span: Span
+    expr: IrExpr
+    alias: str
+
+
+class OverNode(BaseModel):
+    type: Literal["Over"]
+    span: Span
+    function: IrExpr
+    window: Optional[IrExpr] = None
+
+
 # ── Table expression nodes ────────────────────────────────────────────────────
 
 class TableNode(BaseModel):
@@ -230,8 +244,9 @@ class WindowDefNode(BaseModel):
 
 
 class CteDef(BaseModel):
-    name: str
-    query: IrQuery
+    name: Optional[str] = None
+    query: Optional[IrQuery] = None
+    expr: Optional[IrExpr] = None
 
 
 # ── Root nodes ────────────────────────────────────────────────────────────────
@@ -289,7 +304,8 @@ IrExpr = Annotated[
         LiteralNode, ColumnNode, StarNode, TableStarNode,
         FunctionNode, BinaryOpNode, UnaryOpNode, CaseNode,
         CastNode, InNode, BetweenNode, LikeNode, IsNullNode,
-        LambdaNode, ArrayNode, TupleNode, SubqueryNode, RawNode,
+        LambdaNode, ArrayNode, TupleNode, SubqueryNode,
+        AliasNode, OverNode, RawNode,
     ],
     Field(discriminator="type"),
 ]
@@ -309,7 +325,7 @@ for _cls in [
     CaseBranch, FunctionNode, SubqueryNode, SubquerySourceNode, JoinNode,
     ArrayJoinInline, CaseNode, InNode, BetweenNode, LikeNode, IsNullNode,
     LambdaNode, ArrayNode, TupleNode, BinaryOpNode, UnaryOpNode,
-    CastNode, WithNode, SelectUnionNode, SelectNode,
+    CastNode, AliasNode, OverNode, WithNode, SelectUnionNode, SelectNode,
     LimitNode, LimitByNode, OrderByElement, CteDef, TableNode,
     TableFunctionNode,
 ]:
