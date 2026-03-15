@@ -49,6 +49,18 @@ build-deps-probe:
 build-ir:
     {{bazel}} build {{ir_targets}}
 
+# Stage the ir_dump binary from Bazel output into bin/ for wheel packaging.
+stage-bin:
+    mkdir -p bin
+    cp bazel-bin/examples/bootstrap/ir_dump bin/ir_dump
+    chmod +x bin/ir_dump
+
+# Build a platform wheel (runs build-ir + stage-bin first).
+build-wheel:
+    just build-ir
+    just stage-bin
+    MACOSX_DEPLOYMENT_TARGET=11.0 python -m build --wheel
+
 # Install Python dependencies (creates .venv automatically).
 sync:
     uv sync --group dev
