@@ -42,6 +42,23 @@ run_bazel_build() {
   return "${rc}"
 }
 
+# Check that expected artifacts already exist in bazel-bin/ without rebuilding.
+# Used in CI where a prior bazel build step has already produced the artifacts.
+check_artifacts() {
+  local missing=0
+  for target in "$@"; do
+    local binary
+    binary="$(target_to_binary "${target}")"
+    if [[ ! -x "${binary}" ]]; then
+      echo "missing expected artifact: ${binary}" >&2
+      missing=1
+    fi
+  done
+  if [[ ${missing} -ne 0 ]]; then
+    return 1
+  fi
+}
+
 quick_targets=(
   //examples/bootstrap:use_parser_smoke
   //examples/bootstrap:select_lite_smoke
@@ -54,21 +71,49 @@ full_targets=(
   //examples/bootstrap:select_rich_smoke
 )
 
+# Parse --skip-build flag (must precede the mode argument).
+skip_build=0
+if [[ "${1:-}" == "--skip-build" ]]; then
+  skip_build=1
+  shift
+fi
+
 mode="${1:-suite}"
 
-case "${mode}" in
-  quick)
-    run_bazel_build "${quick_targets[@]}"
-    ;;
-  full)
-    run_bazel_build "${full_targets[@]}"
-    ;;
-  suite)
-    run_bazel_build "${quick_targets[@]}"
-    run_bazel_build "${full_targets[@]}"
-    ;;
-  *)
-    echo "usage: $0 [quick|full|suite]" >&2
-    exit 2
-    ;;
-esac
+if [[ ${skip_build} -eq 1 ]]; then
+  case "${mode}" in
+    quick)
+      check_artifacts "${quick_targets[@]}"
+      ;;
+    full)
+      check_artifacts "${full_targets[@]}"
+      ;;
+    suite)
+      result=0
+      check_artifacts "${quick_targets[@]}" || result=$?
+      check_artifacts "${full_targets[@]}" || result=$?
+      exit "${result}"
+      ;;
+    *)
+      echo "usage: $0 [--skip-build] [quick|full|suite]" >&2
+      exit 2
+      ;;
+  esac
+else
+  case "${mode}" in
+    quick)
+      run_bazel_build "${quick_targets[@]}"
+      ;;
+    full)
+      run_bazel_build "${full_targets[@]}"
+      ;;
+    suite)
+      run_bazel_build "${quick_targets[@]}"
+      run_bazel_build "${full_targets[@]}"
+      ;;
+    *)
+      echo "usage: $0 [--skip-build] [quick|full|suite]" >&2
+      exit 2
+      ;;
+  esac
+fi
