@@ -78,6 +78,7 @@ jobs:
             -w /work \
             "${{ matrix.docker-image }}" \
             /bin/bash -c "
+              yum install -y gcc-c++ &&
               curl -fsSL -o /usr/local/bin/bazel \
                 https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${{ matrix.bazelisk-arch }} &&
               chmod +x /usr/local/bin/bazel &&
