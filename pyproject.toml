@@ -12,10 +12,12 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8.0", "pyright>=1.1", "ruff>=0.4"]
+dev = ["pytest>=8.0", "pyright>=1.1", "ruff>=0.4", "build>=1.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["clickshack"]
+
+[tool.hatch.build.hooks.custom]
 
 [tool.ruff]
 line-length = 100

@@ -59,7 +59,7 @@ stage-bin:
 build-wheel:
     just build-ir
     just stage-bin
-    MACOSX_DEPLOYMENT_TARGET=11.0 python -m build --wheel
+    MACOSX_DEPLOYMENT_TARGET=11.0 uv run python -m build --wheel
 
 # Install Python dependencies (creates .venv automatically).
 sync:
