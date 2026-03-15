@@ -1,0 +1,12 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "ir_json",
+    srcs = ["IRSerializer.cpp"],
+    hdrs = ["IRSerializer.h"],
+    deps = [
+        "//ported_clickhouse:parser_select_rich_stack",
+        "@nlohmann_json//:json",
+    ],
+    visibility = ["//visibility:public"],
+)
