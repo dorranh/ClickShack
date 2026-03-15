@@ -92,7 +92,7 @@ if [[ ${skip_build} -eq 1 ]]; then
       result=0
       check_artifacts "${quick_targets[@]}" || result=$?
       check_artifacts "${full_targets[@]}" || result=$?
-      return "${result}"
+      exit "${result}"
       ;;
     *)
       echo "usage: $0 [--skip-build] [quick|full|suite]" >&2
