@@ -10,6 +10,11 @@ AST.
 - Add smoke tests for new ported parser components
 - For any non-ported components include tests / integration test wherever possible.
 
+## C++ Tooling
+
+- Build with Bazel
+- Prefer Bazel Central Registry dependencies. Use local vendoring only as fallback.
+
 ## Python Tooling
 
 - **Formatter/linter:** ruff (`just fmt`, `just lint`)
