@@ -388,10 +388,142 @@ nlohmann::json IRSerializer::serializeExpr(const IAST * node)
     // Fallback
     return {{"type","Raw"},{"id",node->getID('_')},{"span",span0()}};
 }
-nlohmann::json IRSerializer::serializeTableExpr(const IAST *) { return {{"type","Raw"},{"span",span0()}}; }
-nlohmann::json IRSerializer::serializeOrderByList(const IAST *) { return json::array(); }
-nlohmann::json IRSerializer::serializeWindowList(const IAST *) { return json::array(); }
-nlohmann::json IRSerializer::serializeLimitClause(const IAST *) { return {{"type","Limit"},{"span",span0()}}; }
-nlohmann::json IRSerializer::serializeLimitByClause(const IAST *) { return {{"type","LimitBy"},{"span",span0()}}; }
+nlohmann::json IRSerializer::serializeTableExpr(const IAST * node)
+{
+    if (!node) return nullptr;
+
+    if (auto * join = node->as<ASTJoinLite>()) {
+        static const char * types[]      = {"INNER","LEFT","RIGHT","FULL","CROSS","PASTE"};
+        static const char * localities[] = {"","GLOBAL","LOCAL"};
+        json j = {{"type","Join"},{"span",span0()}};
+        j["kind"] = types[static_cast<int>(join->join_type)];
+        if (join->join_locality != ASTJoinLite::JoinLocality::Unspecified)
+            j["locality"] = localities[static_cast<int>(join->join_locality)];
+        if (!join->strictness.empty()) j["strictness"] = join->strictness;
+        j["left"]  = serializeTableExpr(join->left);
+        j["right"] = serializeTableExpr(join->right);
+        if (join->on_expression)  j["on"]    = serializeExpr(join->on_expression);
+        if (join->using_columns)  j["using"] = serializeExprList(join->using_columns);
+        return j;
+    }
+
+    if (auto * te = node->as<ASTTableExprLite>()) {
+        json j;
+        switch (te->kind) {
+            case ASTTableExprLite::Kind::TableIdentifier:
+                j = {{"type","Table"},{"span",span0()}};
+                if (te->table_identifier) {
+                    j["name"] = te->table_identifier->table;
+                    if (!te->table_identifier->database.empty())
+                        j["database"] = te->table_identifier->database;
+                }
+                break;
+            case ASTTableExprLite::Kind::TableFunction:
+                j = {{"type","TableFunction"},{"span",span0()}};
+                if (te->table_function) {
+                    j["function"] = {
+                        {"type","Function"},
+                        {"name", te->table_function->name},
+                        {"args", te->table_function->arguments
+                            ? serializeExprList(static_cast<IAST *>(te->table_function->arguments))
+                            : json::array()},
+                        {"span", span0()},
+                    };
+                }
+                break;
+            case ASTTableExprLite::Kind::Subquery:
+                j = {{"type","SubquerySource"},{"span",span0()}};
+                if (te->subquery) j["query"] = serializeNode(te->subquery);
+                break;
+        }
+        if (te->alias) j["alias"] = te->alias->alias;
+        return j;
+    }
+
+    return {{"type","Raw"},{"id",node->getID('_')},{"span",span0()}};
+}
+
+nlohmann::json IRSerializer::serializeOrderByList(const IAST * node)
+{
+    json arr = json::array();
+    if (!node) return arr;
+    for (const auto & child : node->children) {
+        auto * elem = child ? child->as<ASTOrderByElementLite>() : nullptr;
+        if (!elem) continue;
+        json e = {{"span",span0()}};
+        e["expr"]      = serializeExpr(elem->expression);
+        e["direction"] = (elem->direction == ASTOrderByElementLite::Direction::Asc) ? "ASC" : "DESC";
+        if (elem->nulls_order == ASTOrderByElementLite::NullsOrder::First) e["nulls"] = "FIRST";
+        if (elem->nulls_order == ASTOrderByElementLite::NullsOrder::Last)  e["nulls"] = "LAST";
+        if (!elem->collate_name.empty()) e["collate"] = elem->collate_name;
+        if (elem->with_fill) {
+            json fill;
+            if (elem->fill_from)      fill["from"]      = serializeExpr(elem->fill_from);
+            if (elem->fill_to)        fill["to"]        = serializeExpr(elem->fill_to);
+            if (elem->fill_step)      fill["step"]      = serializeExpr(elem->fill_step);
+            if (elem->fill_staleness) fill["staleness"] = serializeExpr(elem->fill_staleness);
+            e["with_fill"] = std::move(fill);
+        }
+        if (elem->interpolate && elem->interpolate_expressions)
+            e["interpolate"] = serializeExprList(elem->interpolate_expressions);
+        arr.push_back(std::move(e));
+    }
+    return arr;
+}
+
+nlohmann::json IRSerializer::serializeWindowList(const IAST * node)
+{
+    json arr = json::array();
+    if (!node) return arr;
+    for (const auto & child : node->children) {
+        auto * wd = child ? child->as<ASTWindowDefinitionLite>() : nullptr;
+        if (!wd) continue;
+        json w = {{"span",span0()},{"is_reference",wd->is_reference},{"body",wd->body}};
+        if (!wd->name.empty()) w["name"] = wd->name;
+        arr.push_back(std::move(w));
+    }
+    return arr;
+}
+
+nlohmann::json IRSerializer::serializeLimitClause(const IAST * node)
+{
+    const auto * lim = node ? node->as<ASTLimitLite>() : nullptr;
+    if (!lim) return nullptr;
+    json j = {{"type","Limit"},{"span",span0()}};
+    if (lim->limit_expression)
+        j["count"] = serializeExpr(lim->limit_expression);
+    else if (!lim->limit.empty())
+        j["count"] = {{"type","Literal"},{"kind","number"},{"value",lim->limit},{"span",span0()}};
+    if (lim->offset_present) {
+        if (lim->offset_expression)
+            j["offset"] = serializeExpr(lim->offset_expression);
+        else if (!lim->offset.empty())
+            j["offset"] = {{"type","Literal"},{"kind","number"},{"value",lim->offset},{"span",span0()}};
+    }
+    if (lim->with_ties) j["with_ties"] = true;
+    return j;
+}
+
+nlohmann::json IRSerializer::serializeLimitByClause(const IAST * node)
+{
+    const auto * lb = node ? node->as<ASTLimitByLite>() : nullptr;
+    if (!lb) return nullptr;
+    json j = {{"type","LimitBy"},{"span",span0()}};
+    if (lb->limit_expression)
+        j["count"] = serializeExpr(lb->limit_expression);
+    else if (!lb->limit.empty())
+        j["count"] = {{"type","Literal"},{"kind","number"},{"value",lb->limit},{"span",span0()}};
+    if (lb->offset_present) {
+        if (lb->offset_expression)
+            j["offset"] = serializeExpr(lb->offset_expression);
+        else if (!lb->offset.empty())
+            j["offset"] = {{"type","Literal"},{"kind","number"},{"value",lb->offset},{"span",span0()}};
+    }
+    if (lb->by_all)
+        j["by"] = {{"type","Star"},{"span",span0()}};
+    else if (lb->by_expressions)
+        j["by"] = serializeExprList(lb->by_expressions);
+    return j;
+}
 
 } // namespace clickshack
