@@ -38,3 +38,6 @@ class ClickshackBuildHook(BuildHookInterface):
         # Without this, the gitignored binary would be silently dropped from the wheel.
         # Key = absolute source path on disk; value = destination path inside the wheel.
         build_data["force_include"][str(dst.resolve())] = dst_in_wheel
+        # Signal to Hatchling that this is a platform-specific distribution.
+        build_data["pure_python"] = False
+        build_data["infer_tag"] = True
