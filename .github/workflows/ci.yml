@@ -82,15 +82,19 @@ jobs:
               curl -fsSL -o /usr/local/bin/bazel \
                 https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${{ matrix.bazelisk-arch }} &&
               chmod +x /usr/local/bin/bazel &&
-              bazel build --config=ci //examples/bootstrap:ir_dump
+              bazel build --config=ci //examples/bootstrap:ir_dump &&
+              cp bazel-bin/examples/bootstrap/ir_dump /work/ir_dump &&
+              chmod 755 /work/ir_dump
             "
       - name: Build ir_dump (macOS)
         if: runner.os == 'macOS'
-        run: bazel build --config=ci //examples/bootstrap:ir_dump
+        run: |
+          bazel build --config=ci //examples/bootstrap:ir_dump
+          cp bazel-bin/examples/bootstrap/ir_dump ir_dump
       - uses: actions/upload-artifact@v4
         with:
           name: ir_dump-${{ matrix.platform }}
-          path: bazel-bin/examples/bootstrap/ir_dump
+          path: ir_dump
 
   build-wheel:
     needs: build-binary
