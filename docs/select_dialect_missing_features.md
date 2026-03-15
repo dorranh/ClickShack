@@ -103,9 +103,9 @@ Implementation sources:
     - Local parser supports searched CASE (`CASE WHEN ...`) only.
 
 18. `NULL` literal fidelity is missing.
-    - **Status: missing**
-    - Local AST literal kind lacks native null-kind representation.
-    - `NULL` is currently encoded as string-like payload.
+    - **Status: implemented**
+    - Local AST literal kind now has a native null-kind representation.
+    - `NULL` is no longer encoded as a string-like payload.
 
 ## 7) LIMIT/OFFSET/FETCH Fidelity Gaps
 

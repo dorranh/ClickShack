@@ -356,6 +356,20 @@
       "expected_canonical_summary": "",
       "exclusion_reason": "Parenthesized table expressions without subquery wrappers remain excluded until table atom coverage is expanded.",
       "expected_failure_class": "parse_failed"
+    },
+    {
+      "id": "p1_null_literal",
+      "workload_source_id": "null_literal_p1",
+      "path": "supported/p1_null_literal.sql",
+      "priority": "P1",
+      "clause_tags": [
+        "null_literal",
+        "is_null",
+        "where"
+      ],
+      "expected_result_kind": "success",
+      "expected_canonical_summary": "projections=2 unions=0 set_ops=none settings=0 format=0 joins=0 join_types=none join_modes=none source_kinds=table with=0 with_recursive=0 distinct=0 select_all=0 distinct_on=0 top=0 top_ties=0 final=0 sample=0 sample_offset=0 array_join=0 array_join_left=0 prewhere=0 where=1 group_by=0 group_all=0 group_rollup=0 group_cube=0 group_totals=0 having=0 windows=0 qualify=0 order_by=0 order_nulls=0 order_collate=0 order_fill=0 order_interpolate=0 limit=0 limit_by=0 limit_by_offset=0 limit_ties=0 limit_by_all=0 offset=0",
+      "exclusion_reason": ""
     }
   ]
 }

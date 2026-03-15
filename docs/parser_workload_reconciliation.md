@@ -14,10 +14,10 @@
 - Included entries: `7`
 - Excluded entries: `4`
 - Deferred entries: `1`
-- Supported fixtures: `19`
+- Supported fixtures: `20`
 - Excluded fixtures: `7`
 - Missing source mappings: `none`
-- Extra fixture mappings: `EX-001, EX-W2-001..EX-W2-007, IW-013..IW-018`
+- Extra fixture mappings: `EX-001, EX-W2-001..EX-W2-007, IW-013..IW-018, null_literal_p1`
 
 ## Mapping Notes
 
@@ -41,8 +41,8 @@ mapped_total: 12
 included_total: 7
 excluded_total: 4
 deferred_total: 1
-supported_fixtures: 19
+supported_fixtures: 20
 excluded_fixtures: 7
 missing_source_ids: []
-extra_manifest_ids: ['EX-001', 'EX-W2-001', 'EX-W2-002', 'EX-W2-003', 'EX-W2-004', 'EX-W2-005', 'EX-W2-006', 'EX-W2-007', 'IW-013', 'IW-014', 'IW-015', 'IW-016', 'IW-017', 'IW-018']
+extra_manifest_ids: ['EX-001', 'EX-W2-001', 'EX-W2-002', 'EX-W2-003', 'EX-W2-004', 'EX-W2-005', 'EX-W2-006', 'EX-W2-007', 'IW-013', 'IW-014', 'IW-015', 'IW-016', 'IW-017', 'IW-018', 'null_literal_p1']
 ```
