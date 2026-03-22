@@ -39,7 +39,7 @@ build = ["cp311-*", "cp312-*", "cp313-*"]
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28_x86_64"
 manylinux-aarch64-image = "quay.io/pypa/manylinux_2_28_aarch64"
-repair-wheel-command = "auditwheel repair --exclude libpthread.so.0 -w {dest_dir} {wheel}"
+repair-wheel-command = "auditwheel repair --exclude libpthread.so.0 --exclude libc.so.6 --exclude libm.so.6 --exclude libdl.so.2 --exclude librt.so.1 -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.macos]
 environment = {MACOSX_DEPLOYMENT_TARGET = "14.5"}
