@@ -1,5 +1,7 @@
 # ClickShack
 
+![PyPI - Version](https://img.shields.io/pypi/v/clickshack) | ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dorranh/clickshack/ci.yml)
+
 A collection of ClickHouse query parsing and analysis tools built on a rickety, hollowed-out version of ClickHouse.
 
 One of the challenges of building tooling around SQL is that some dialects provide a large set of features beyond
