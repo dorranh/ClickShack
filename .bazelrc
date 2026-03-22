@@ -14,3 +14,4 @@ build:sanitize_wrapper --repo_env=CXX=./tools/clang_sanitize_fuse_ld.sh
 build:ci --repo_env=PATH=/usr/local/bin:/usr/bin:/bin
 build:ci --repo_env=CC=gcc
 build:ci --repo_env=CXX=g++
+build:ci --action_env=MACOSX_DEPLOYMENT_TARGET=11.0
