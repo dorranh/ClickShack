@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import sqlglot
 import sqlglot.expressions as exp
+from sqlglot.expressions import Expression  # pyright: ignore[reportPrivateImportUsage]
 
 from clickshack.ir.models import (
     AliasNode,
@@ -39,7 +39,7 @@ from clickshack.ir.models import (
 )
 
 
-def to_sqlglot(query: IrQuery) -> sqlglot.Expression:
+def to_sqlglot(query: IrQuery) -> Expression:
     """Convert an IR root node to a sqlglot Expression."""
     if isinstance(query, WithNode):
         return _with_to_sqlglot(query)
@@ -50,7 +50,7 @@ def to_sqlglot(query: IrQuery) -> sqlglot.Expression:
     raise NotImplementedError(f"to_sqlglot: unsupported root type {type(query).__name__}")
 
 
-def expr_to_sqlglot(node: IrExpr) -> sqlglot.Expression:
+def expr_to_sqlglot(node: IrExpr) -> Expression:
     """Convert an IR expression node to a sqlglot Expression."""
     if isinstance(node, LiteralNode):
         if node.kind == "null":
@@ -209,7 +209,7 @@ def _select_to_sqlglot(sel: SelectNode) -> exp.Select:
     return result
 
 
-def _table_to_sqlglot(te: IrTableExpr) -> sqlglot.Expression:
+def _table_to_sqlglot(te: IrTableExpr) -> Expression:
     if isinstance(te, TableNode):
         if te.database:
             tbl = exp.Table(
@@ -242,7 +242,7 @@ def _table_to_sqlglot(te: IrTableExpr) -> sqlglot.Expression:
     raise NotImplementedError(f"_table_to_sqlglot: unsupported {type(te).__name__}")
 
 
-def _union_to_sqlglot(node: SelectUnionNode) -> sqlglot.Expression:
+def _union_to_sqlglot(node: SelectUnionNode) -> Expression:
     left = to_sqlglot(node.left)
     right = to_sqlglot(node.right)
     distinct = node.quantifier.upper() != "ALL"
@@ -256,7 +256,7 @@ def _union_to_sqlglot(node: SelectUnionNode) -> sqlglot.Expression:
     raise NotImplementedError(f"_union_to_sqlglot: unknown op {node.op!r}")
 
 
-def _with_to_sqlglot(node: WithNode) -> sqlglot.Expression:
+def _with_to_sqlglot(node: WithNode) -> Expression:
     body = to_sqlglot(node.body)
     ctes = []
     for cte in node.ctes:
